@@ -20,17 +20,22 @@ async function main() {
   await prisma.product.deleteMany().catch(() => null);
 
   // 1. Create Colleges
-  const harvard = await prisma.college.upsert({
-    where: { code: 'HARVARD' },
-    update: {},
+  const pcet = await prisma.college.upsert({
+    where: { code: 'PCET' },
+    update: {
+      name: 'Pimpri Chinchwad Education Trust (PCET)',
+      domain: 'pcet.org.in',
+      city: 'Pune',
+      state: 'MH',
+    },
     create: {
-      name: 'Harvard University',
-      code: 'HARVARD',
-      domain: 'harvard.edu',
-      city: 'Cambridge',
-      state: 'MA',
-      latitude: 42.3770,
-      longitude: -71.1167,
+      name: 'Pimpri Chinchwad Education Trust (PCET)',
+      code: 'PCET',
+      domain: 'pcet.org.in',
+      city: 'Pune',
+      state: 'MH',
+      latitude: 18.6517,
+      longitude: 73.7615,
     },
   });
 

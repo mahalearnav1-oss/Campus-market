@@ -13,9 +13,9 @@ interface CampusState {
 
 export const useCampusStore = create<CampusState>((set) => ({
   activeCampus: {
-    id: 'default-harvard-uuid',
-    name: 'Harvard University',
-    code: 'HARVARD',
+    id: 'default-pcet-uuid',
+    name: 'Pimpri Chinchwad Education Trust (PCET)',
+    code: 'PCET',
   },
   setActiveCampus: (activeCampus) => set({ activeCampus }),
 }));

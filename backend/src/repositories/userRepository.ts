@@ -39,11 +39,11 @@ export class UserRepository {
         } else {
           const newCol = await tx.college.create({
             data: {
-              name: 'Harvard University',
-              code: 'HARVARD',
-              domain: 'harvard.edu',
-              city: 'Cambridge',
-              state: 'MA',
+              name: 'Pimpri Chinchwad Education Trust (PCET)',
+              code: 'PCET',
+              domain: 'pcet.org.in',
+              city: 'Pune',
+              state: 'MH',
             },
           });
           targetCollegeId = newCol.id;
