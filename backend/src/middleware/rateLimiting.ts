@@ -1,8 +1,10 @@
 import rateLimit from 'express-rate-limit';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15,
+  max: isDev ? 500 : 50, // 50 attempts in prod, 500 in dev
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -16,7 +18,7 @@ export const authLimiter = rateLimit({
 
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: isDev ? 5000 : 1500, // 1500 in prod to accommodate background 5s notification polling
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -30,7 +32,7 @@ export const apiLimiter = rateLimit({
 
 export const searchLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 60,
+  max: isDev ? 600 : 150,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -44,7 +46,7 @@ export const searchLimiter = rateLimit({
 
 export const paymentLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: isDev ? 200 : 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -58,7 +60,7 @@ export const paymentLimiter = rateLimit({
 
 export const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: isDev ? 1000 : 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
