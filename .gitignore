@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build & Dist outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Database & Prisma
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+
+# Logs & Debugging
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE, Agent & Editor files
+.vscode/
+.idea/
+.agent/
+.stitch/
+.gemini/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# OS System files
+.DS_Store
+Thumbs.db

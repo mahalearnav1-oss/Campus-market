@@ -1,0 +1,66 @@
+name: CampusMarket Continuous Integration (CI)
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: arnav
+          MYSQL_DATABASE: campusmarket
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Monorepo Dependencies
+        run: npm ci
+
+      - name: Validate Prisma Schema
+        run: npm run prisma:generate --workspace=backend
+
+      - name: Push Database Schema to MySQL
+        env:
+          DATABASE_URL: mysql://root:arnav@127.0.0.1:3306/campusmarket
+        run: npx prisma db push --schema=backend/prisma/schema.prisma
+
+      - name: Run TypeScript Type Checks
+        run: npm run typecheck
+
+      - name: Run Unit & API Test Suites
+        env:
+          DATABASE_URL: mysql://root:arnav@127.0.0.1:3306/campusmarket
+          JWT_SECRET: super_secret_jwt_key_campusmarket_2026
+          REFRESH_TOKEN_SECRET: super_secret_refresh_key_campusmarket_2026
+        run: |
+          npm run test:db --workspace=backend
+          npm run test:auth --workspace=backend
+          npm run test:seller --workspace=backend
+          npm run test:marketplace --workspace=backend
+          npm run test:discovery --workspace=backend
+          npm run test:cart --workspace=backend
+          npm run test:order --workspace=backend
+          npm run test:payments --workspace=backend
+          npm run test:delivery --workspace=backend
+          npm run test:reviews --workspace=backend
+          npm run test:notifications --workspace=backend
+          npm run test:admin --workspace=backend
+
+      - name: Build Monorepo Bundles
+        run: npm run build

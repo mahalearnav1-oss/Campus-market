@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: campusmarket_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: arnav
+      MYSQL_DATABASE: campusmarket
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: campusmarket_backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: mysql://root:arnav@mysql:3306/campusmarket
+      JWT_SECRET: super_secret_jwt_key_campusmarket_2026
+      REFRESH_TOKEN_SECRET: super_secret_refresh_key_campusmarket_2026
+      RAZORPAY_KEY_ID: rzp_test_campusmarket2026
+      RAZORPAY_KEY_SECRET: test_secret_campusmarket_key_2026
+      RAZORPAY_WEBHOOK_SECRET: test_webhook_secret_2026
+      CORS_ORIGIN: http://localhost:80
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: campusmarket_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

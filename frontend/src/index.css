@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg:        244 239 231;  /* #F4EFE7 Warm Oat */
+    --color-surface:   237 229 217;  /* #EDE5D9 Warm Sand */
+    --color-primary:    59 42 34;     /* #3B2A22 Espresso Primary */
+    --color-body:       74 57 47;     /* #4A392F Primary Body Text */
+    --color-secondary: 110 89 72;     /* #6E5948 Subdued Warm Taupe */
+    --color-muted:     139 117 98;    /* #8B7562 Muted Labels */
+    --color-gold:      200 164 106;   /* #C8A46A Champagne Gold */
+  }
+
+  *,
+  *::before,
+  *::after { box-sizing: border-box; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body {
+    background-color: #F4EFE7;
+    color: #4A392F; /* High-contrast primary body text */
+    overflow-y: auto !important;
+    min-height: 100vh;
+    font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+    letter-spacing: -0.015em;
+    color: #3B2A22; /* High-contrast espresso headings */
+  }
+
+  /* Thin Warm Espresso scrollbar */
+  ::-webkit-scrollbar       { width: 6px; }
+  ::-webkit-scrollbar-track { background: #F4EFE7; }
+  ::-webkit-scrollbar-thumb { background: #D6C8B8; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #C8A46A; }
+
+  /* Warm Gold selection tint */
+  ::selection {
+    background-color: rgba(200, 164, 106, 0.25);
+    color: #3B2A22;
+  }
+}
+
+@layer components {
+
+  /* ── Headings ──────────────────────────────────────────── */
+  .heading-hero {
+    @apply font-heading tracking-tight;
+    font-size: 76px;
+    line-height: 1.05;
+    color: #3B2A22;
+  }
+  .heading-title {
+    @apply font-heading tracking-tight;
+    font-size: 48px;
+    line-height: 1.1;
+    color: #3B2A22;
+  }
+  .heading-editorial {
+    @apply font-heading font-normal italic;
+    color: #3B2A22;
+  }
+
+  /* ── Labels / Tags ─────────────────────────────────────── */
+  .tag-editorial {
+    @apply text-[11px] tracking-[0.2em] uppercase font-sans font-semibold;
+    color: #8B7562;
+  }
+  .tag-category {
+    @apply text-[11px] tracking-[0.18em] uppercase font-sans font-bold
+           px-3.5 py-1 rounded-full backdrop-blur-md;
+    color: #3B2A22;
+    background-color: #E7DED1;
+    border: 1px solid #D6C8B8;
+  }
+
+  /* ── Buttons ───────────────────────────────────────────── */
+
+  /* Deep Obsidian filled — primary action */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2.5
+           px-8 py-3.5 rounded-full font-sans text-sm font-semibold tracking-[0.08em] uppercase
+           transition-all duration-300
+           active:scale-95 cursor-pointer;
+    background-color: #111111;
+    color: #F4EFE7;
+    box-shadow: 0 4px 16px rgba(17, 17, 17, 0.15);
+  }
+  .btn-primary:hover {
+    background-color: #262626;
+    color: #FFFFFF;
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.25);
+    transform: translateY(-2px);
+  }
+  .btn-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Vibrant Sage — Escrow CTA action */
+  .btn-emerald {
+    @apply inline-flex items-center justify-center gap-2.5
+           px-8 py-3.5 rounded-full font-sans text-sm font-semibold tracking-[0.08em] uppercase
+           transition-all duration-300
+           active:scale-95 cursor-pointer text-white;
+    background-color: #6E8A62;
+    color: #F4EFE7;
+    box-shadow: 0 6px 18px rgba(110, 138, 98, 0.25);
+  }
+  .btn-emerald:hover {
+    background-color: #5A7550;
+    box-shadow: 0 10px 25px rgba(110, 138, 98, 0.35);
+    transform: translateY(-2px);
+  }
+
+  /* Outlined warm taupe glass — secondary action */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2.5
+           px-8 py-3.5 rounded-full font-sans text-sm font-semibold tracking-[0.08em] uppercase
+           transition-all duration-300
+           backdrop-blur-xl active:scale-95 cursor-pointer;
+    background-color: rgba(237, 229, 217, 0.7);
+    color: #3B2A22;
+    border: 1px solid #8B6A4F;
+  }
+  .btn-secondary:hover {
+    background-color: #EDE5D9;
+    color: #111111;
+    border-color: #3B2A22;
+    transform: translateY(-2px);
+  }
+
+  /* Text-only ghost */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2
+           text-xs font-sans font-semibold tracking-[0.12em] uppercase
+           transition-colors duration-200 cursor-pointer;
+    color: #6E5948;
+  }
+  .btn-ghost:hover {
+    color: #3B2A22;
+  }
+
+  /* ── Floating Navbar Pill Container ─────────────────────── */
+  .floating-nav {
+    @apply max-w-6xl mx-auto rounded-full backdrop-blur-2xl
+           px-6 py-3 shadow-glass-nav transition-all duration-300;
+    background-color: rgba(237, 229, 217, 0.9);
+    border: 1px solid #D6C8B8;
+  }
+
+  /* ── Product Card ──────────────────────────────────────── */
+  .card-product {
+    @apply rounded-[32px] overflow-hidden backdrop-blur-xl;
+    background-color: #EDE5D9;
+    border: 1px solid #D6C8B8;
+    transition: all 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .card-product:hover {
+    border-color: #C8A46A;
+    transform: translateY(-6px);
+    box-shadow: 0 20px 48px -12px rgba(59, 42, 34, 0.12), 0 0 0 1px rgba(200, 164, 106, 0.3);
+  }
+
+  .card-product-image {
+    @apply aspect-[4/5] overflow-hidden relative;
+    background-color: #E7DED1;
+  }
+  .card-product-image img {
+    @apply w-full h-full object-cover transition-transform duration-700 group-hover:scale-105;
+  }
+
+  /* ── Form Inputs with High-Contrast Placeholders ──────────── */
+  .input-editorial {
+    @apply w-full text-base font-sans py-3.5 px-5 rounded-2xl
+           focus:outline-none transition-all duration-200;
+    background-color: #E7DED1;
+    color: #3B2A22;
+    border: 1px solid #D6C8B8;
+  }
+  .input-editorial::placeholder {
+    color: #A08D7A;
+    opacity: 1;
+  }
+  .input-editorial:focus {
+    border-color: #C8A46A;
+    box-shadow: 0 0 0 2px rgba(200, 164, 106, 0.25);
+  }
+
+  .input-box {
+    @apply w-full text-base font-sans px-5 py-3.5 rounded-2xl
+           focus:outline-none transition-all duration-200;
+    background-color: #E7DED1;
+    color: #3B2A22;
+    border: 1px solid #D6C8B8;
+  }
+  .input-box::placeholder {
+    color: #A08D7A;
+    opacity: 1;
+  }
+  .input-box:focus {
+    border-color: #C8A46A;
+    box-shadow: 0 0 0 2px rgba(200, 164, 106, 0.25);
+  }
+
+  /* ── Section Headers ───────────────────────────────────── */
+  .section-header {
+    @apply flex items-end justify-between mb-10;
+  }
+  .section-title {
+    @apply font-heading tracking-tight;
+    font-size: 42px;
+    line-height: 1.15;
+    color: #3B2A22;
+  }
+  .section-subtitle {
+    @apply font-sans text-xs tracking-[0.2em] uppercase font-semibold mb-2;
+    color: #8B7562;
+  }
+
+  /* ── Badge ─────────────────────────────────────────────── */
+  .badge-count {
+    @apply inline-flex items-center justify-center px-1.5 min-w-4 h-4
+           text-[10px] font-extrabold rounded-full shadow-sm;
+    background-color: #C8A46A;
+    color: #F4EFE7;
+  }
+
+  /* Glassmorphic card container */
+  .glass-card {
+    @apply backdrop-blur-2xl rounded-[32px];
+    background-color: #EDE5D9;
+    border: 1px solid #D6C8B8;
+  }
+
+  /* Warm Shimmer skeleton loader */
+  .skeleton {
+    background: linear-gradient(90deg, #EDE5D9 25%, #E7DED1 50%, #EDE5D9 75%);
+    background-size: 200% 100%;
+    animation: sheen 2.5s linear infinite;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .shadow-glass-nav {
+    box-shadow: 0 10px 30px -5px rgba(59, 42, 34, 0.08), 0 0 0 1px #D6C8B8;
+  }
+}
