@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion } from 'framer-motion';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const FRAME_COUNT = 240;
 const INITIAL_PRIORITY_FRAMES = 10;
@@ -202,47 +197,7 @@ export const BookScrollHero: React.FC = () => {
     return () => window.removeEventListener('resize', updateCanvasSize);
   }, [imagesLoaded]);
 
-  // 4. GSAP ScrollTrigger Scrubbing
-  useEffect(() => {
-    if (!containerRef.current || !pinnedRef.current) return;
 
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          pin: pinnedRef.current,
-          start: 'top top',
-          end: '+=160%',
-          scrub: 0.3,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      tl.to(frameIndexObjRef.current, {
-        frame: FRAME_COUNT - 1,
-        ease: 'none',
-        onUpdate: () => {
-          renderFrame(frameIndexObjRef.current.frame);
-        },
-      });
-
-      if (headlineRef.current) {
-        tl.to(headlineRef.current, { y: -20, opacity: 0.95, ease: 'power1.out' }, 0);
-      }
-      if (paragraphRef.current) {
-        tl.to(paragraphRef.current, { y: -12, opacity: 0.9, ease: 'power1.out' }, 0);
-      }
-      if (searchFormRef.current) {
-        tl.to(searchFormRef.current, { scale: 1.015, ease: 'power1.out' }, 0);
-      }
-      if (ctaGroupRef.current) {
-        tl.to(ctaGroupRef.current, { y: -8, ease: 'power1.out' }, 0);
-      }
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, [imagesLoaded]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,12 +240,10 @@ export const BookScrollHero: React.FC = () => {
               </p>
 
               {/* Glass Search Panel */}
-              <motion.form
+              <form
                 ref={searchFormRef}
                 onSubmit={handleSearchSubmit}
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col sm:flex-row items-stretch gap-2 max-w-xl bg-[#EDE5D9] p-2.5 rounded-2xl border border-[#D6C8B8] shadow-warm-subtle transition-all duration-300"
+                className="flex flex-col sm:flex-row items-stretch gap-2 max-w-xl bg-[#EDE5D9] p-2.5 rounded-2xl border border-[#D6C8B8] shadow-warm-subtle transition-all duration-300 hover:scale-[1.01]"
               >
                 <div className="flex-1 flex items-center gap-3 px-3 py-2">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-[#8B7562]">
@@ -308,7 +261,7 @@ export const BookScrollHero: React.FC = () => {
                 <button type="submit" className="btn-primary text-xs font-medium uppercase py-3.5 px-7 rounded-xl shrink-0">
                   Search Catalog
                 </button>
-              </motion.form>
+              </form>
 
               {/* Action Buttons */}
               <div ref={ctaGroupRef} className="flex flex-wrap items-center gap-4 pt-2">
@@ -351,9 +304,7 @@ export const BookScrollHero: React.FC = () => {
                 <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-8 bg-[#3B2A22]/20 blur-2xl rounded-full pointer-events-none transform scale-95" />
 
                 {/* Micro Floating Motion */}
-                <motion.div
-                  animate={{ y: [-7, 7, -7] }}
-                  transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+                <div
                   className="relative w-full h-full flex items-center justify-center z-10"
                 >
                   <canvas
@@ -370,7 +321,7 @@ export const BookScrollHero: React.FC = () => {
                       </span>
                     </div>
                   )}
-                </motion.div>
+                </div>
 
               </div>
 
