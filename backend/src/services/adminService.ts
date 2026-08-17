@@ -1,7 +1,9 @@
 import { adminRepository } from '../repositories/adminRepository';
+import { collegeRepository } from '../repositories/collegeRepository';
 import { prisma } from '../config/prisma';
 import { logAuditEvent } from '../utils/auditLogger';
 import { notificationService } from './notificationService';
+import { cacheService } from './cacheService';
 import {
   UpdateUserStatusInput,
   VerifySellerInput,
@@ -12,6 +14,8 @@ import {
   ResolveReportInput,
   CreateDisputeInput,
   ResolveDisputeInput,
+  CreateCampusInput,
+  UpdateCampusInput,
 } from '../validators/adminValidators';
 import { UserStatus, SellerStatus, ProductStatus, ReportStatus, DisputeStatus, NotificationType } from '@prisma/client';
 
@@ -39,21 +43,15 @@ export class AdminService {
   }
 
   async verifySeller(adminUserId: string, sellerId: string, input: VerifySellerInput, ipAddress?: string) {
-    const seller = await prisma.seller.findUnique({ where: { id: sellerId } });
-
-    if (!seller) {
-      const error: any = new Error('Seller not found.');
-      error.statusCode = 404;
-      error.code = 'SELLER_NOT_FOUND';
-      throw error;
-    }
-
-    const updatedSeller = await prisma.seller.update({
+    const seller = await prisma.seller.update({
       where: { id: sellerId },
       data: { status: input.status as SellerStatus },
+      include: { user: true },
     });
 
-    // Notify Seller
+    await logAuditEvent('SELLER_VERIFICATION_UPDATED', 'Seller', adminUserId, sellerId, { status: input.status, notes: input.notes }, ipAddress);
+
+    // Notify seller
     const notifType = input.status === 'VERIFIED' ? NotificationType.SELLER_VERIFIED : NotificationType.SELLER_REJECTED;
     const title = input.status === 'VERIFIED' ? '✅ Seller Verification Approved!' : '❌ Seller Application Rejected';
     const body = input.status === 'VERIFIED'
@@ -68,8 +66,7 @@ export class AdminService {
       actionUrl: '/seller',
     });
 
-    await logAuditEvent('SELLER_VERIFICATION_MODERATED', 'Seller', adminUserId, sellerId, { status: input.status, notes: input.notes }, ipAddress);
-    return updatedSeller;
+    return seller;
   }
 
   async getProducts(page: number = 1, limit: number = 20, status?: ProductStatus, search?: string) {
@@ -77,44 +74,22 @@ export class AdminService {
   }
 
   async updateProductStatus(adminUserId: string, productId: string, input: UpdateProductStatusInput, ipAddress?: string) {
-    const product = await prisma.product.findUnique({ where: { id: productId }, include: { seller: true } });
-
-    if (!product) {
-      const error: any = new Error('Product not found.');
-      error.statusCode = 404;
-      error.code = 'PRODUCT_NOT_FOUND';
-      throw error;
-    }
-
-    let mappedStatus: ProductStatus = ProductStatus.ACTIVE;
-    if (input.status === 'APPROVED' || input.status === 'ACTIVE') mappedStatus = ProductStatus.ACTIVE;
-    else if (input.status === 'HIDDEN' || input.status === 'SUSPENDED') mappedStatus = ProductStatus.SUSPENDED;
-    else if (input.status === 'REMOVED') mappedStatus = ProductStatus.ARCHIVED;
-
-    const updatedProduct = await prisma.product.update({
+    const product = await prisma.product.update({
       where: { id: productId },
-      data: { status: mappedStatus },
+      data: { status: input.status as ProductStatus },
+      include: { seller: true },
     });
 
-    // Notify seller
-    if (product.seller) {
-      await notificationService.notifyUser({
-        userId: product.seller.userId,
-        type: NotificationType.SYSTEM,
-        title: `⚠️ Product Listing Moderated: "${product.title}"`,
-        body: `Status updated to ${mappedStatus}. Reason: ${input.reason || 'Policy compliance review.'}`,
-        actionUrl: `/seller/products`,
-      });
-    }
-
-    await logAuditEvent('PRODUCT_MODERATED', 'Product', adminUserId, productId, { status: mappedStatus, reason: input.reason }, ipAddress);
-    return updatedProduct;
+    await logAuditEvent('PRODUCT_STATUS_UPDATED', 'Product', adminUserId, productId, { status: input.status, reason: input.reason }, ipAddress);
+    return product;
   }
 
   async getCategories() {
     return prisma.category.findMany({
+      include: {
+        _count: { select: { products: true, subcategories: true } },
+      },
       orderBy: { displayOrder: 'asc' },
-      include: { _count: { select: { products: true } } },
     });
   }
 
@@ -160,14 +135,135 @@ export class AdminService {
     return { success: true };
   }
 
+  // --- CAMPUS / COLLEGE ADMINISTRATION ---
+
+  async getCampuses() {
+    return collegeRepository.findAllWithStats();
+  }
+
+  async createCampus(adminUserId: string, input: CreateCampusInput, ipAddress?: string) {
+    // 1. Check duplicate code
+    const existingCode = await collegeRepository.findByCode(input.code);
+    if (existingCode) {
+      const error: any = new Error(`A campus with code "${input.code}" already exists.`);
+      error.statusCode = 409;
+      error.code = 'DUPLICATE_CAMPUS_CODE';
+      throw error;
+    }
+
+    // 2. Generate or check domain
+    const domain = input.domain || `${input.code.toLowerCase()}.edu`;
+    const existingDomain = await collegeRepository.findByDomain(domain);
+    if (existingDomain) {
+      const error: any = new Error(`A campus with domain "${domain}" already exists.`);
+      error.statusCode = 409;
+      error.code = 'DUPLICATE_CAMPUS_DOMAIN';
+      throw error;
+    }
+
+    // 3. Create campus
+    const campus = await collegeRepository.create({
+      name: input.name,
+      code: input.code,
+      domain,
+      city: input.city,
+      state: input.state,
+      latitude: input.latitude || null,
+      longitude: input.longitude || null,
+    });
+
+    // 4. Invalidate caches
+    cacheService.delete('colleges:all');
+
+    // 5. Log audit event
+    await logAuditEvent('CAMPUS_CREATED', 'College', adminUserId, campus.id, { name: campus.name, code: campus.code }, ipAddress);
+    return campus;
+  }
+
+  async updateCampus(adminUserId: string, campusId: string, input: UpdateCampusInput, ipAddress?: string) {
+    const existing = await collegeRepository.findById(campusId);
+    if (!existing) {
+      const error: any = new Error('Campus not found.');
+      error.statusCode = 404;
+      error.code = 'CAMPUS_NOT_FOUND';
+      throw error;
+    }
+
+    // If code is being updated, check uniqueness
+    if (input.code && input.code !== existing.code) {
+      const duplicateCode = await collegeRepository.findByCode(input.code);
+      if (duplicateCode && duplicateCode.id !== campusId) {
+        const error: any = new Error(`A campus with code "${input.code}" already exists.`);
+        error.statusCode = 409;
+        error.code = 'DUPLICATE_CAMPUS_CODE';
+        throw error;
+      }
+    }
+
+    // If domain is being updated, check uniqueness
+    if (input.domain && input.domain !== existing.domain) {
+      const duplicateDomain = await collegeRepository.findByDomain(input.domain);
+      if (duplicateDomain && duplicateDomain.id !== campusId) {
+        const error: any = new Error(`A campus with domain "${input.domain}" already exists.`);
+        error.statusCode = 409;
+        error.code = 'DUPLICATE_CAMPUS_DOMAIN';
+        throw error;
+      }
+    }
+
+    const updated = await collegeRepository.update(campusId, {
+      ...(input.name ? { name: input.name } : {}),
+      ...(input.code ? { code: input.code } : {}),
+      ...(input.domain ? { domain: input.domain } : {}),
+      ...(input.city ? { city: input.city } : {}),
+      ...(input.state ? { state: input.state } : {}),
+      ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+      ...(input.longitude !== undefined ? { longitude: input.longitude } : {}),
+    });
+
+    cacheService.delete('colleges:all');
+    cacheService.delete(`college:id:${campusId}`);
+
+    await logAuditEvent('CAMPUS_UPDATED', 'College', adminUserId, campusId, input, ipAddress);
+    return updated;
+  }
+
+  async deleteCampus(adminUserId: string, campusId: string, ipAddress?: string) {
+    const existing = await collegeRepository.findById(campusId);
+    if (!existing) {
+      const error: any = new Error('Campus not found.');
+      error.statusCode = 404;
+      error.code = 'CAMPUS_NOT_FOUND';
+      throw error;
+    }
+
+    // Protect against deleting campus if active users or products reference it
+    const usage = await collegeRepository.countUsage(campusId);
+    if (usage.userCount > 0 || usage.productCount > 0) {
+      const error: any = new Error(
+        `Cannot delete campus "${existing.name}" because ${usage.userCount} user(s) and ${usage.productCount} product(s) are linked to it. Please reassign records first.`
+      );
+      error.statusCode = 400;
+      error.code = 'CAMPUS_IN_USE';
+      throw error;
+    }
+
+    await collegeRepository.delete(campusId);
+    cacheService.delete('colleges:all');
+    cacheService.delete(`college:id:${campusId}`);
+
+    await logAuditEvent('CAMPUS_DELETED', 'College', adminUserId, campusId, { code: existing.code }, ipAddress);
+    return { success: true, message: `Campus "${existing.name}" deleted successfully.` };
+  }
+
   async getOrders(page: number = 1, limit: number = 20, status?: any, search?: string) {
     return adminRepository.getOrders({ page, limit, status, search });
   }
 
-  async createReport(userId: string, input: CreateReportInput, ipAddress?: string) {
+  async createReport(reporterUserId: string, input: CreateReportInput, ipAddress?: string) {
     const report = await prisma.report.create({
       data: {
-        reporterUserId: userId,
+        reporterUserId,
         targetType: input.targetType,
         targetId: input.targetId,
         reason: input.reason,
@@ -176,7 +272,7 @@ export class AdminService {
       },
     });
 
-    await logAuditEvent('REPORT_SUBMITTED', 'Report', userId, report.id, { targetType: input.targetType, targetId: input.targetId }, ipAddress);
+    await logAuditEvent('REPORT_CREATED', 'Report', reporterUserId, report.id, { targetType: input.targetType }, ipAddress);
     return report;
   }
 
@@ -185,13 +281,21 @@ export class AdminService {
   }
 
   async resolveReport(adminUserId: string, reportId: string, input: ResolveReportInput, ipAddress?: string) {
+    const report = await prisma.report.findUnique({ where: { id: reportId } });
+    if (!report) {
+      const error: any = new Error('Report not found.');
+      error.statusCode = 404;
+      error.code = 'REPORT_NOT_FOUND';
+      throw error;
+    }
+
     const updated = await prisma.report.update({
       where: { id: reportId },
       data: {
         status: input.status as ReportStatus,
-        assignedAdminId: adminUserId,
         resolutionNotes: input.resolutionNotes || null,
         resolvedAt: new Date(),
+        assignedAdminId: adminUserId,
       },
     });
 
@@ -201,11 +305,18 @@ export class AdminService {
 
   async createDispute(userId: string, input: CreateDisputeInput, ipAddress?: string) {
     const order = await prisma.order.findUnique({ where: { id: input.orderId } });
+    if (!order) {
+      const error: any = new Error('Order not found.');
+      error.statusCode = 404;
+      error.code = 'ORDER_NOT_FOUND';
+      throw error;
+    }
 
-    if (!order || order.buyerId !== userId) {
-      const error: any = new Error('You can only open disputes for your own orders.');
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
+    const existingDispute = await prisma.dispute.findUnique({ where: { orderId: input.orderId } });
+    if (existingDispute) {
+      const error: any = new Error('A dispute is already active for this order.');
+      error.statusCode = 409;
+      error.code = 'DUPLICATE_DISPUTE';
       throw error;
     }
 

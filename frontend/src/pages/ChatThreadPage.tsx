@@ -14,8 +14,8 @@ export interface ChatMessage {
 
 export interface ChatThreadData {
   id: string;
-  buyer?: { id: string; firstName: string; lastName: string } | null;
-  seller?: { id: string; storeName: string; userId: string } | null;
+  buyer?: { id: string; firstName: string; lastName: string; avatarUrl?: string | null } | null;
+  seller?: { id: string; storeName: string; userId: string; rating?: number | null } | null;
   product?: { id: string; title: string; price: string | number; images?: Array<{ imageUrl: string }> } | null;
   messages: ChatMessage[];
 }
@@ -29,6 +29,7 @@ export const ChatThreadPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   // Reporting Modal State
   const [reportingMessageId, setReportingMessageId] = useState<string | null>(null);
@@ -36,42 +37,56 @@ export const ChatThreadPage: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchThread = async () => {
+  const fetchThread = async (silent = false) => {
+    if (!conversationId) return;
     try {
-      setIsLoading(true);
+      if (!silent) setIsLoading(true);
+      setError(null);
       const res: any = await apiClient.get(`/conversations/${conversationId}`);
       setThread(res.data.conversation);
     } catch (err: any) {
-      setError(err.message || 'Failed to load chat thread.');
+      if (!silent) {
+        setError(err.message || 'Failed to load conversation thread.');
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (conversationId) fetchThread();
+    if (conversationId) {
+      fetchThread();
+
+      // Poll every 3 seconds for new incoming messages
+      const interval = setInterval(() => {
+        fetchThread(true);
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
   }, [conversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [thread?.messages]);
+  }, [thread?.messages?.length]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessageText.trim() || !conversationId) return;
+    const textToSend = newMessageText.trim();
+    if (!textToSend || !conversationId) return;
 
     try {
       setIsSending(true);
-      const textToSend = newMessageText.trim();
-      setNewMessageText('');
+      setSendError(null);
 
       const res: any = await apiClient.post(`/conversations/${conversationId}/messages`, {
         messageText: textToSend,
       });
 
+      setNewMessageText('');
       setThread((prev) => (prev ? { ...prev, messages: [...prev.messages, res.data.message] } : null));
     } catch (err: any) {
-      setError(err.message || 'Failed to send message.');
+      setSendError(err.message || 'Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -110,31 +125,41 @@ export const ChatThreadPage: React.FC = () => {
           <h2 className="font-heading text-3xl font-normal text-[#3B2A22] mb-2">Conversation Unavailable</h2>
           <p className="font-sans text-xs text-[#6E5948] leading-relaxed">{error || 'Conversation not found or access denied.'}</p>
         </div>
-        <Link to="/messages" className="btn-primary w-full text-xs">
-          Back to Messages
-        </Link>
+        <div className="flex gap-3">
+          <button onClick={() => fetchThread()} className="btn-secondary flex-1 text-xs">
+            Retry
+          </button>
+          <Link to="/messages" className="btn-primary flex-1 text-xs">
+            Back to Messages
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const productImg = thread.product?.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
-  const otherPartyName = thread.seller?.storeName || `Student User ${thread.buyer?.firstName || ''}`;
+  const isMeBuyer = thread.buyer?.id === user?.id;
+  const otherPartyName = isMeBuyer
+    ? thread.seller?.storeName || 'Campus Seller'
+    : `${thread.buyer?.firstName || 'Student'} ${thread.buyer?.lastName ? `${thread.buyer.lastName.charAt(0)}.` : ''}`;
+  const otherPartyRole = isMeBuyer ? 'Storefront Seller' : 'Student Buyer';
+
+  const productImg =
+    thread.product?.images?.[0]?.imageUrl ||
+    '/images/chemistry_textbook_cover_1786457575258.png';
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 space-y-6 text-[#3B2A22]">
-
       {/* Back Link */}
       <Link to="/messages" className="inline-flex items-center gap-2 font-sans text-xs text-[#8B7562] hover:text-[#3B2A22] transition-colors">
-        ← Back to Messages
+        ← Back to Direct Messages
       </Link>
 
       {/* Floating Warm Conversation Container */}
-      <div className="rounded-[32px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-card overflow-hidden flex flex-col h-[700px]">
-
+      <div className="rounded-[32px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-card overflow-hidden flex flex-col h-[720px]">
         {/* Conversation Header */}
         <div className="p-6 bg-[#E7DED1] border-b border-[#D6C8B8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#111111] text-[#F4EFE7] font-heading font-semibold text-lg flex items-center justify-center shadow-md">
+            <div className="w-12 h-12 rounded-2xl bg-[#111111] text-[#F4EFE7] font-heading font-semibold text-lg flex items-center justify-center shadow-md shrink-0">
               {otherPartyName.charAt(0)}
             </div>
             <div>
@@ -145,7 +170,7 @@ export const ChatThreadPage: React.FC = () => {
                     <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
                     <path d="M6 12v5c3 3 9 3 12 0v-5" />
                   </svg>
-                  Verified Student
+                  {otherPartyRole}
                 </span>
               </div>
               <p className="font-sans text-xs text-[#8B7562] mt-0.5">Escrow Guaranteed Handshake Chat</p>
@@ -156,12 +181,24 @@ export const ChatThreadPage: React.FC = () => {
           {thread.product && (
             <Link
               to={`/products/${thread.product.id}`}
-              className="flex items-center gap-3 p-3 rounded-2xl bg-[#EDE5D9] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all group shrink-0"
+              className="flex items-center gap-3 p-3 rounded-2xl bg-[#EDE5D9] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all group shrink-0 max-w-xs"
             >
-              <img src={productImg} alt={thread.product.title} className="w-10 h-10 object-cover rounded-xl border border-[#D6C8B8]" />
-              <div className="text-left max-w-[180px]">
-                <h4 className="font-heading text-xs font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] truncate">{thread.product.title}</h4>
-                <p className="font-sans text-xs font-semibold text-[#C8A46A]">₹{Number(thread.product.price).toLocaleString('en-IN')}</p>
+              <img
+                src={productImg}
+                alt={thread.product.title}
+                className="w-11 h-11 object-cover rounded-xl border border-[#D6C8B8] shrink-0"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/images/chemistry_textbook_cover_1786457575258.png';
+                }}
+              />
+              <div className="text-left min-w-0">
+                <h4 className="font-heading text-xs font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] truncate">
+                  {thread.product.title}
+                </h4>
+                <p className="font-sans text-xs font-semibold text-[#C8A46A]">
+                  ₹{Number(thread.product.price).toLocaleString('en-IN')}
+                </p>
               </div>
             </Link>
           )}
@@ -170,8 +207,12 @@ export const ChatThreadPage: React.FC = () => {
         {/* Message History Feed */}
         <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-[#F4EFE7]/40">
           {thread.messages.length === 0 ? (
-            <div className="text-center py-16 text-xs text-[#8B7562]">
-              Start the conversation by sending a message about item availability or campus pickup details.
+            <div className="text-center py-20 px-4 text-xs text-[#8B7562] space-y-2">
+              <div className="w-10 h-10 rounded-full bg-[#E7DED1] border border-[#D6C8B8] flex items-center justify-center mx-auto text-[#8B7562]">
+                💬
+              </div>
+              <p className="font-semibold text-[#3B2A22]">No messages in this conversation yet</p>
+              <p>Type a message below to inquire about condition, price, or meetup location.</p>
             </div>
           ) : (
             thread.messages.map((msg) => {
@@ -189,7 +230,7 @@ export const ChatThreadPage: React.FC = () => {
                   </div>
 
                   <div
-                    className={`max-w-md p-4 rounded-2xl text-xs font-sans leading-relaxed shadow-sm relative group ${
+                    className={`max-w-[85%] sm:max-w-md p-4 rounded-2xl text-xs font-sans leading-relaxed shadow-sm relative group break-words whitespace-pre-wrap ${
                       isMine
                         ? 'bg-[#3B2A22] text-[#F4EFE7] rounded-tr-none'
                         : 'bg-[#E7DED1] text-[#3B2A22] border border-[#D6C8B8] rounded-tl-none'
@@ -200,7 +241,7 @@ export const ChatThreadPage: React.FC = () => {
                     {!isMine && (
                       <button
                         onClick={() => setReportingMessageId(msg.id)}
-                        className="opacity-0 group-hover:opacity-100 absolute -right-7 top-2 text-[#8B7562] hover:text-[#9B5C52] transition-opacity"
+                        className="opacity-0 group-hover:opacity-100 absolute -right-7 top-2 text-[#8B7562] hover:text-[#9B5C52] transition-opacity p-1"
                         title="Report message"
                       >
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -217,25 +258,43 @@ export const ChatThreadPage: React.FC = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Premium Message Composer */}
+        {/* Message Error */}
+        {sendError && (
+          <div className="px-6 py-2 bg-[#9B5C52]/15 text-[#9B5C52] text-xs font-semibold border-t border-[#9B5C52]/30 flex items-center justify-between">
+            <span>{sendError}</span>
+            <button onClick={() => setSendError(null)} className="underline hover:text-[#3B2A22]">
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Message Composer */}
         <form onSubmit={handleSendMessage} className="p-4 bg-[#E7DED1] border-t border-[#D6C8B8] flex items-center gap-3">
           <input
             type="text"
             value={newMessageText}
             onChange={(e) => setNewMessageText(e.target.value)}
-            placeholder="Type your message or proposal details…"
-            className="input-editorial flex-1"
+            placeholder="Type your inquiry or campus meetup details…"
+            className="input-editorial flex-1 text-xs"
+            maxLength={2000}
+            disabled={isSending}
           />
 
           <button
             type="submit"
             disabled={isSending || !newMessageText.trim()}
-            className="btn-primary text-xs font-semibold uppercase py-3.5 px-7 rounded-2xl disabled:opacity-40"
+            className="btn-primary text-xs font-semibold uppercase py-3.5 px-7 rounded-2xl disabled:opacity-40 flex items-center gap-1.5 shrink-0"
           >
-            {isSending ? 'Sending…' : 'Send'}
+            {isSending ? (
+              <>
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                Sending…
+              </>
+            ) : (
+              'Send'
+            )}
           </button>
         </form>
-
       </div>
 
       {/* Reporting Modal */}
@@ -244,7 +303,7 @@ export const ChatThreadPage: React.FC = () => {
           <div className="w-full max-w-md bg-[#EDE5D9] border border-[#D6C8B8] rounded-[32px] p-8 shadow-2xl space-y-4">
             <h3 className="font-heading text-2xl font-normal text-[#3B2A22]">Report Message</h3>
             <p className="font-sans text-xs text-[#6E5948]">
-              Report inappropriate content or policy violations for campus moderator review.
+              Report inappropriate content, off-platform solicitation, or policy violations for campus moderation.
             </p>
 
             <textarea
@@ -252,7 +311,7 @@ export const ChatThreadPage: React.FC = () => {
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
               placeholder="Describe the reason for reporting this message…"
-              className="input-editorial w-full"
+              className="input-editorial w-full text-xs"
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -274,7 +333,6 @@ export const ChatThreadPage: React.FC = () => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

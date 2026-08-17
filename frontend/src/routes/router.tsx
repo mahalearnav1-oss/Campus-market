@@ -35,6 +35,7 @@ import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { AdminSellersPage } from '../pages/admin/AdminSellersPage';
 import { AdminProductsPage } from '../pages/admin/AdminProductsPage';
 import { AdminCategoriesPage } from '../pages/admin/AdminCategoriesPage';
+import { AdminCampusesPage } from '../pages/admin/AdminCampusesPage';
 import { AdminOrdersPage } from '../pages/admin/AdminOrdersPage';
 import { AdminReportsPage } from '../pages/admin/AdminReportsPage';
 import { AdminDisputesPage } from '../pages/admin/AdminDisputesPage';
@@ -279,6 +280,10 @@ export const router = createBrowserRouter([
       {
         path: 'categories',
         element: <AdminCategoriesPage />,
+      },
+      {
+        path: 'campuses',
+        element: <AdminCampusesPage />,
       },
       {
         path: 'orders',

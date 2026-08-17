@@ -281,7 +281,7 @@ export const BookScrollHero: React.FC = () => {
                 ref={paragraphRef}
                 className="font-sans text-base sm:text-lg text-[#6E5948] leading-relaxed max-w-xl"
               >
-                Trade textbooks, lab gear, notes, and calculators with quiet confidence. Verified student profiles, 100% escrow security, and direct on-campus handshakes.
+                Trade textbooks, lab gear, notes, and calculators with quiet confidence. Verified student profiles, escrow protection, and direct on-campus handshakes.
               </p>
 
               {/* Glass Search Panel */}
@@ -323,7 +323,7 @@ export const BookScrollHero: React.FC = () => {
               {/* Trust Indicators */}
               <div ref={trustBadgeRef} className="pt-6 border-t border-[#D6C8B8]/60 grid grid-cols-3 gap-4 max-w-lg">
                 <div>
-                  <div className="font-heading text-xl font-medium text-[#3B2A22]">100%</div>
+                  <div className="font-heading text-xl font-medium text-[#3B2A22]">Secure</div>
                   <div className="font-sans text-[11px] text-[#8B7562] uppercase tracking-wider">Escrow Protected</div>
                 </div>
                 <div>

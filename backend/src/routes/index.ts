@@ -18,11 +18,13 @@ import notificationRoutes from './notificationRoutes';
 import adminRoutes from './adminRoutes';
 import collegeRoutes from './collegeRoutes';
 import uploadRoutes from './uploadRoutes';
+import platformRoutes from './platformRoutes';
 
 const router = Router();
 
 // API Version 1 Namespace
 router.use('/', healthRoutes);
+router.use('/platform', platformRoutes);
 router.use('/auth', authRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/users', userRoutes);

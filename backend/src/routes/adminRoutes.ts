@@ -11,6 +11,10 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  getCampuses,
+  createCampus,
+  updateCampus,
+  deleteCampus,
   getOrders,
   createReport,
   getReports,
@@ -45,6 +49,11 @@ router.post('/admin/categories', requireAuth, requireAdmin, createCategory);
 router.patch('/admin/categories/:id', requireAuth, requireAdmin, updateCategory);
 router.delete('/admin/categories/:id', requireAuth, requireAdmin, deleteCategory);
 
+router.get('/admin/campuses', requireAuth, requireModerator, getCampuses);
+router.post('/admin/campuses', requireAuth, requireAdmin, createCampus);
+router.patch('/admin/campuses/:id', requireAuth, requireAdmin, updateCampus);
+router.delete('/admin/campuses/:id', requireAuth, requireAdmin, deleteCampus);
+
 router.get('/admin/orders', requireAuth, requireModerator, getOrders);
 router.get('/admin/reports', requireAuth, requireModerator, getReports);
 router.patch('/admin/reports/:id/resolve', requireAuth, requireModerator, resolveReport);
@@ -55,3 +64,4 @@ router.patch('/admin/disputes/:id/resolve', requireAuth, requireAdmin, resolveDi
 router.get('/admin/audit-logs', requireAuth, requireAdmin, getAuditLogs);
 
 export default router;
+

@@ -41,7 +41,7 @@ export class MessageService {
     }
 
     await logAuditEvent('CONVERSATION_CREATED', 'Conversation', userId, conversation.id, { sellerId: input.sellerId }, ipAddress);
-    return conversation;
+    return this.getConversationDetails(userId, conversation.id);
   }
 
   async sendMessage(userId: string, conversationId: string, input: SendMessageInput, ipAddress?: string) {

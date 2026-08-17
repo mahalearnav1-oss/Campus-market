@@ -48,8 +48,9 @@ export const ProductDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingCart, setIsAddingCart] = useState(false);
   const [isSavingWishlist, setIsSavingWishlist] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   // Reviews State
   const [reviewsData, setReviewsData] = useState<{
@@ -62,6 +63,7 @@ export const ProductDetailPage: React.FC = () => {
       if (!id) return;
       try {
         setIsLoading(true);
+        setPageError(null);
         const [prodRes, revRes]: any = await Promise.all([
           apiClient.get(`/products/${id}`),
           apiClient.get(`/products/${id}/reviews`),
@@ -73,7 +75,7 @@ export const ProductDetailPage: React.FC = () => {
           setSelectedImage(primary.imageUrl);
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load product details.');
+        setPageError(err.message || 'Failed to load product details.');
       } finally {
         setIsLoading(false);
       }
@@ -85,12 +87,13 @@ export const ProductDetailPage: React.FC = () => {
     if (!id || !product) return;
     try {
       setIsAddingCart(true);
-      setMessage(null);
+      setActionSuccess(null);
+      setActionError(null);
       await apiClient.post('/cart/items', { productId: id, quantity: purchaseQty });
       queryClient.invalidateQueries();
-      setMessage(`Successfully added ${purchaseQty} unit(s) of "${product.title}" to your cart!`);
+      setActionSuccess(`Successfully added ${purchaseQty} unit(s) of "${product.title}" to your cart!`);
     } catch (err: any) {
-      setError(err.message || 'Failed to add item to cart.');
+      setActionError(err.message || 'Failed to add item to cart.');
     } finally {
       setIsAddingCart(false);
     }
@@ -100,14 +103,49 @@ export const ProductDetailPage: React.FC = () => {
     if (!id || !product) return;
     try {
       setIsSavingWishlist(true);
-      setMessage(null);
+      setActionSuccess(null);
+      setActionError(null);
       await apiClient.post('/wishlist/items', { productId: id });
       queryClient.invalidateQueries();
-      setMessage(`Saved "${product.title}" to your wishlist!`);
+      setActionSuccess(`Saved "${product.title}" to your wishlist!`);
     } catch (err: any) {
-      setError(err.message || 'Failed to save to wishlist.');
+      setActionError(err.message || 'Failed to save to wishlist.');
     } finally {
       setIsSavingWishlist(false);
+    }
+  };
+
+  const [isStartingChat, setIsStartingChat] = useState(false);
+
+  const handleMessageSeller = async () => {
+    if (!product) return;
+    if (!isAuthenticated) {
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
+    try {
+      setIsStartingChat(true);
+      setActionError(null);
+      const res: any = await apiClient.post('/conversations', {
+        sellerId: product.seller.id,
+        productId: product.id,
+      });
+
+      const conversationId = res.data?.conversation?.id;
+      if (conversationId) {
+        navigate(`/messages/${conversationId}`);
+      } else {
+        navigate('/messages');
+      }
+    } catch (err: any) {
+      if (err.code === 'SELF_MESSAGING_NOT_ALLOWED') {
+        setActionError('You cannot start a conversation with yourself on your own product listing.');
+      } else {
+        setActionError(err.message || 'Failed to start conversation with seller.');
+      }
+    } finally {
+      setIsStartingChat(false);
     }
   };
 
@@ -120,7 +158,7 @@ export const ProductDetailPage: React.FC = () => {
     );
   }
 
-  if (error || !product) {
+  if (pageError || !product) {
     return (
       <div className="max-w-md mx-auto my-16 p-8 sm:p-10 rounded-[32px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-card text-center space-y-6 text-[#3B2A22]">
         <div className="w-14 h-14 rounded-2xl bg-[#E7DED1] text-[#3B2A22] flex items-center justify-center mx-auto">
@@ -131,7 +169,7 @@ export const ProductDetailPage: React.FC = () => {
         </div>
         <div>
           <h2 className="font-heading text-3xl font-normal text-[#3B2A22] mb-2">Product Not Found</h2>
-          <p className="font-sans text-xs text-[#6E5948] leading-relaxed">{error || 'This listing does not exist.'}</p>
+          <p className="font-sans text-xs text-[#6E5948] leading-relaxed">{pageError || 'This listing does not exist.'}</p>
         </div>
         <Link to="/products" className="btn-primary w-full text-xs">
           Browse Marketplace
@@ -160,14 +198,16 @@ export const ProductDetailPage: React.FC = () => {
         <span className="text-[#3B2A22] font-semibold truncate max-w-xs">{product.title}</span>
       </div>
 
-      {message && (
-        <div className="p-4 rounded-2xl bg-[#6E8A62]/15 border border-[#6E8A62]/30 text-[#6E8A62] font-sans text-xs font-semibold">
-          {message}
+      {actionSuccess && (
+        <div className="p-4 rounded-2xl bg-[#6E8A62]/15 border border-[#6E8A62]/30 text-[#6E8A62] font-sans text-xs font-semibold flex items-center justify-between">
+          <span>{actionSuccess}</span>
+          <button onClick={() => setActionSuccess(null)} className="underline hover:text-[#3B2A22]">Dismiss</button>
         </div>
       )}
-      {error && (
-        <div className="p-4 rounded-2xl bg-[#9B5C52]/15 border border-[#9B5C52]/30 text-[#9B5C52] font-sans text-xs font-semibold">
-          {error}
+      {actionError && (
+        <div className="p-4 rounded-2xl bg-[#9B5C52]/15 border border-[#9B5C52]/30 text-[#9B5C52] font-sans text-xs font-semibold flex items-center justify-between">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="underline hover:text-[#3B2A22]">Dismiss</button>
         </div>
       )}
 
@@ -298,19 +338,23 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => {
-                if (!isAuthenticated) {
-                  navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
-                  return;
-                }
-                navigate('/messages?sellerId=' + product.seller.id + '&productId=' + product.id);
-              }}
-              className="btn-secondary !py-2.5 !px-4 text-xs font-semibold uppercase flex items-center gap-1.5"
+              onClick={handleMessageSeller}
+              disabled={isStartingChat}
+              className="btn-secondary !py-2.5 !px-4 text-xs font-semibold uppercase flex items-center gap-1.5 disabled:opacity-50"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              Chat Seller
+              {isStartingChat ? (
+                <>
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-[#3B2A22] border-t-transparent animate-spin" />
+                  Connecting…
+                </>
+              ) : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                  Chat Seller
+                </>
+              )}
             </button>
           </div>
 

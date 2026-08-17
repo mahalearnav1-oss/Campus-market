@@ -84,6 +84,15 @@ export const AdminLayout: React.FC = () => {
       ),
     },
     {
+      label: 'Campuses',
+      path: '/admin/campuses',
+      icon: (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4" />
+        </svg>
+      ),
+    },
+    {
       label: 'Orders & Payments',
       path: '/admin/orders',
       icon: (

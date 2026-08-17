@@ -52,6 +52,26 @@ export const resolveDisputeSchema = z.object({
   resolutionNotes: z.string().trim().optional(),
 });
 
+export const createCampusSchema = z.object({
+  name: z.string().trim().min(2, 'Campus name must be at least 2 characters').max(150, 'Campus name cannot exceed 150 characters'),
+  code: z.string().trim().min(2, 'Campus code must be at least 2 characters').max(20, 'Campus code cannot exceed 20 characters').toUpperCase(),
+  domain: z.string().trim().min(3, 'Domain must be at least 3 characters').max(100, 'Domain cannot exceed 100 characters').optional(),
+  city: z.string().trim().min(2, 'City must be at least 2 characters').max(100, 'City cannot exceed 100 characters'),
+  state: z.string().trim().min(2, 'State must be at least 2 characters').max(100, 'State cannot exceed 100 characters'),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+});
+
+export const updateCampusSchema = z.object({
+  name: z.string().trim().min(2, 'Campus name must be at least 2 characters').max(150, 'Campus name cannot exceed 150 characters').optional(),
+  code: z.string().trim().min(2, 'Campus code must be at least 2 characters').max(20, 'Campus code cannot exceed 20 characters').toUpperCase().optional(),
+  domain: z.string().trim().min(3, 'Domain must be at least 3 characters').max(100, 'Domain cannot exceed 100 characters').optional(),
+  city: z.string().trim().min(2, 'City must be at least 2 characters').max(100, 'City cannot exceed 100 characters').optional(),
+  state: z.string().trim().min(2, 'State must be at least 2 characters').max(100, 'State cannot exceed 100 characters').optional(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+});
+
 export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
 export type VerifySellerInput = z.infer<typeof verifySellerSchema>;
 export type UpdateProductStatusInput = z.infer<typeof updateProductStatusSchema>;
@@ -61,3 +81,6 @@ export type CreateReportInput = z.infer<typeof createReportSchema>;
 export type ResolveReportInput = z.infer<typeof resolveReportSchema>;
 export type CreateDisputeInput = z.infer<typeof createDisputeSchema>;
 export type ResolveDisputeInput = z.infer<typeof resolveDisputeSchema>;
+export type CreateCampusInput = z.infer<typeof createCampusSchema>;
+export type UpdateCampusInput = z.infer<typeof updateCampusSchema>;
+

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { ProductCard, ProductCardData } from '../components/ProductCard';
 import { RatingStars } from '../components/reviews/RatingStars';
+import { useAuthStore } from '../stores/authStore';
 
 export const PublicSellerPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const [seller, setSeller] = useState<any>(null);
   const [products, setProducts] = useState<ProductCardData[]>([]);
   const [reviewsData, setReviewsData] = useState<{
@@ -13,6 +16,8 @@ export const PublicSellerPage: React.FC = () => {
     summary: { averageRating: string; totalReviews: number; distribution: Record<number, number> };
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStartingChat, setIsStartingChat] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadStorefront() {
@@ -56,6 +61,37 @@ export const PublicSellerPage: React.FC = () => {
     );
   }
 
+  const handleMessageSeller = async () => {
+    if (!seller) return;
+    if (!isAuthenticated) {
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
+    try {
+      setIsStartingChat(true);
+      setChatError(null);
+      const res: any = await apiClient.post('/conversations', {
+        sellerId: seller.id,
+      });
+
+      const conversationId = res.data?.conversation?.id;
+      if (conversationId) {
+        navigate(`/messages/${conversationId}`);
+      } else {
+        navigate('/messages');
+      }
+    } catch (err: any) {
+      if (err.code === 'SELF_MESSAGING_NOT_ALLOWED') {
+        setChatError('You cannot start a conversation with yourself.');
+      } else {
+        setChatError(err.message || 'Failed to start conversation with seller.');
+      }
+    } finally {
+      setIsStartingChat(false);
+    }
+  };
+
   const sellerRatingNum = Number(reviewsData?.summary?.averageRating || seller.rating || 5.0);
   const sellerReviewCount = reviewsData?.summary?.totalReviews || 0;
 
@@ -88,6 +124,29 @@ export const PublicSellerPage: React.FC = () => {
               <span>{seller.totalSalesCount || 0} items sold</span>
             </div>
           </div>
+        </div>
+
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <button
+            onClick={handleMessageSeller}
+            disabled={isStartingChat}
+            className="btn-primary !py-3 !px-6 text-xs font-semibold uppercase flex items-center gap-2 shadow-warm-subtle disabled:opacity-50"
+          >
+            {isStartingChat ? (
+              <>
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                Connecting…
+              </>
+            ) : (
+              <>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                Message Seller
+              </>
+            )}
+          </button>
+          {chatError && <p className="font-sans text-[11px] text-[#9B5C52]">{chatError}</p>}
         </div>
       </div>
 

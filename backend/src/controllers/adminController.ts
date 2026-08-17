@@ -6,6 +6,8 @@ import {
   updateProductStatusSchema,
   createCategorySchema,
   updateCategorySchema,
+  createCampusSchema,
+  updateCampusSchema,
   createReportSchema,
   resolveReportSchema,
   createDisputeSchema,
@@ -188,6 +190,72 @@ export async function deleteCategory(req: Request, res: Response, next: NextFunc
     const categoryId = req.params.id;
 
     const result = await adminService.deleteCategory(adminUserId, categoryId, req.ip);
+    res.status(200).json({
+      success: true,
+      data: result,
+      meta: { timestamp: new Date().toISOString() },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// --- CAMPUS MANAGEMENT ---
+
+export async function getCampuses(req: Request, res: Response, next: NextFunction) {
+  try {
+    const campuses = await adminService.getCampuses();
+    res.status(200).json({
+      success: true,
+      data: { campuses },
+      meta: { timestamp: new Date().toISOString() },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createCampus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const adminUserId = req.user!.id;
+    const validatedInput = createCampusSchema.parse(req.body);
+
+    const campus = await adminService.createCampus(adminUserId, validatedInput, req.ip);
+    res.status(201).json({
+      success: true,
+      data: { campus },
+      message: 'Campus created successfully.',
+      meta: { timestamp: new Date().toISOString() },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateCampus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const adminUserId = req.user!.id;
+    const campusId = req.params.id;
+    const validatedInput = updateCampusSchema.parse(req.body);
+
+    const campus = await adminService.updateCampus(adminUserId, campusId, validatedInput, req.ip);
+    res.status(200).json({
+      success: true,
+      data: { campus },
+      message: 'Campus updated successfully.',
+      meta: { timestamp: new Date().toISOString() },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteCampus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const adminUserId = req.user!.id;
+    const campusId = req.params.id;
+
+    const result = await adminService.deleteCampus(adminUserId, campusId, req.ip);
     res.status(200).json({
       success: true,
       data: result,

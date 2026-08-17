@@ -29,6 +29,23 @@ export const HomePage: React.FC = () => {
 
 
 
+  const { data: platformStats, isLoading: isStatsLoading } = useQuery<{
+    verifiedStudents: number;
+    activeListings: number;
+    activeCampuses: number;
+  }>({
+    queryKey: ['platform-stats'],
+    queryFn: async () => {
+      try {
+        const res: any = await apiClient.get('/platform/stats');
+        return res?.data || { verifiedStudents: 0, activeListings: 0, activeCampuses: 0 };
+      } catch (err) {
+        return { verifiedStudents: 0, activeListings: 0, activeCampuses: 0 };
+      }
+    },
+    staleTime: 30000,
+  });
+
   const activeHeroProduct = Array.isArray(featuredProducts) && featuredProducts.length > 0 ? featuredProducts[0] : null;
 
   const heroImage = activeHeroProduct?.images?.[0]?.imageUrl || (activeHeroProduct as any)?.imageUrl || '/images/collection_textbooks.png';
@@ -71,7 +88,7 @@ export const HomePage: React.FC = () => {
               </h1>
 
               <p className="font-sans text-base sm:text-lg text-[#6E5948] leading-relaxed max-w-xl mb-10">
-                Trade textbooks, lab gear, notes, and calculators with quiet confidence. Verified student profiles, 100% escrow security, and direct on-campus handshakes.
+                Trade textbooks, lab gear, notes, and calculators with quiet confidence. Verified student profiles, escrow protection, and direct on-campus handshakes.
               </p>
 
               {/* Glass Search Panel */}
@@ -107,16 +124,28 @@ export const HomePage: React.FC = () => {
               {/* Live Platform Stats */}
               <div className="grid grid-cols-3 gap-6 pt-10 border-t border-[#D6C8B8]">
                 <div>
-                  <p className="font-heading text-3xl sm:text-4xl font-normal text-[#3B2A22]">15,000+</p>
-                  <p className="text-[11px] font-sans font-semibold tracking-wider uppercase text-[#8B7562] mt-1">Verified Students</p>
+                  <p className="font-heading text-3xl sm:text-4xl font-normal text-[#3B2A22]">
+                    {isStatsLoading ? '…' : (platformStats?.verifiedStudents || 0).toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-[11px] font-sans font-semibold tracking-wider uppercase text-[#8B7562] mt-1">
+                    Verified Students
+                  </p>
                 </div>
                 <div>
-                  <p className="font-heading text-3xl sm:text-4xl font-normal text-[#3B2A22]">₹15L+</p>
-                  <p className="text-[11px] font-sans font-semibold tracking-wider uppercase text-[#8B7562] mt-1">Saved on Books</p>
+                  <p className="font-heading text-3xl sm:text-4xl font-normal text-[#3B2A22]">
+                    {isStatsLoading ? '…' : (platformStats?.activeListings || 0).toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-[11px] font-sans font-semibold tracking-wider uppercase text-[#8B7562] mt-1">
+                    Active Listings
+                  </p>
                 </div>
                 <div>
-                  <p className="font-heading text-3xl sm:text-4xl font-normal text-[#3B2A22]">100%</p>
-                  <p className="text-[11px] font-sans font-semibold tracking-wider uppercase text-[#8B7562] mt-1">Escrow Security</p>
+                  <p className="font-heading text-3xl sm:text-4xl font-normal text-[#3B2A22]">
+                    Secure
+                  </p>
+                  <p className="text-[11px] font-sans font-semibold tracking-wider uppercase text-[#8B7562] mt-1">
+                    Escrow Protected
+                  </p>
                 </div>
               </div>
             </div>
@@ -250,7 +279,7 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
               <div className="p-8 space-y-3">
-                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">1,400+ Curated Books</span>
+                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">Course Textbooks</span>
                 <h3 className="font-heading text-4xl font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] transition-colors leading-tight">
                   Textbooks
                 </h3>
@@ -281,7 +310,7 @@ export const HomePage: React.FC = () => {
                 />
               </div>
               <div className="p-7 space-y-2.5 flex-1 flex flex-col">
-                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">520+ Devices</span>
+                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">Campus Electronics</span>
                 <h3 className="font-heading text-3xl font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] transition-colors leading-tight">
                   Electronics
                 </h3>
@@ -314,7 +343,7 @@ export const HomePage: React.FC = () => {
                 />
               </div>
               <div className="p-7 space-y-2.5 flex-1 flex flex-col">
-                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">890+ Items</span>
+                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">Dorm Essentials</span>
                 <h3 className="font-heading text-3xl font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] transition-colors leading-tight">
                   Dorm Essentials
                 </h3>
@@ -345,7 +374,7 @@ export const HomePage: React.FC = () => {
                 />
               </div>
               <div className="p-8 space-y-3">
-                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">720+ Notes</span>
+                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">Course Study Aids</span>
                 <h3 className="font-heading text-4xl font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] transition-colors leading-tight">
                   Study Guides
                 </h3>
@@ -378,7 +407,7 @@ export const HomePage: React.FC = () => {
                 />
               </div>
               <div className="p-7 space-y-2.5 flex-1 flex flex-col">
-                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">210+ Tools</span>
+                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">Lab Apparatus</span>
                 <h3 className="font-heading text-3xl font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] transition-colors leading-tight">
                   Lab Tools
                 </h3>
@@ -409,7 +438,7 @@ export const HomePage: React.FC = () => {
                 />
               </div>
               <div className="p-7 space-y-2.5 flex-1 flex flex-col">
-                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">340+ Units</span>
+                <span className="font-sans text-[10px] tracking-[0.25em] uppercase font-semibold text-[#8B7562]">STEM Electronics</span>
                 <h3 className="font-heading text-3xl font-normal text-[#3B2A22] group-hover:text-[#8B6A4F] transition-colors leading-tight">
                   Calculators
                 </h3>
@@ -431,7 +460,7 @@ export const HomePage: React.FC = () => {
           {/* Bottom Trust Footnote */}
           <div className="mt-14 pt-8 border-t border-[#D6C8B8] flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="font-sans text-xs text-[#8B7562]">
-              All collections are verified by campus students and protected by 100% escrow guarantee.
+              All collections are verified by campus students and protected by campus escrow protection.
             </p>
             <div className="flex items-center gap-5">
               <div className="flex items-center gap-1.5 text-[#6E8A62]">

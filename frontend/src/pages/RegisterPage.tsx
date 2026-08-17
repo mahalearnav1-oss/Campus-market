@@ -89,7 +89,7 @@ export const RegisterPage: React.FC = () => {
             <span className="italic font-normal text-[#8B6A4F]">on one campus.</span>
           </h2>
           <p className="font-sans text-sm text-[#6E5948] leading-relaxed max-w-md">
-            Join over 15,000 verified students trading secondhand textbooks, lab tools, and gear with discounts up to 70% off retail prices.
+            Join verified students trading secondhand textbooks, lab tools, and course gear directly on your campus network.
           </p>
 
           <div className="mt-8 flex flex-col gap-3">
