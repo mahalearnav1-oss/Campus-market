@@ -5,6 +5,7 @@ node_modules/
 # Build & Dist outputs
 dist/
 build/
+coverage/
 .next/
 out/
 *.tsbuildinfo
@@ -44,10 +45,11 @@ pnpm-debug.log*
 # OS System files
 .DS_Store
 Thumbs.db
+
+# Runtime Uploads & Dev Diagnostics
 backend/uploads/
 backend/src/utils/diagnoseMessaging.ts
 backend/src/utils/resetDatabase.ts
 backend/src/utils/testAdminCampuses.ts
 backend/src/utils/testAdminFrontendFlow.ts
 backend/src/utils/testMessagingE2E.ts
-backend/uploads/

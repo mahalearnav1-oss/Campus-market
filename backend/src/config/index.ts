@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env file
+// Load environment variables from backend/.env first, then root .env as fallback
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 function getEnvVariable(key: string, defaultValue?: string): string {
   const value = process.env[key] || defaultValue;
