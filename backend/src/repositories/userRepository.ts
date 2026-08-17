@@ -6,6 +6,7 @@ export class UserRepository {
     return prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
       include: {
+        college: { select: { id: true, name: true, code: true, city: true, state: true } },
         seller: { select: { id: true, sellerType: true, status: true } },
       },
     });
@@ -15,7 +16,7 @@ export class UserRepository {
     return prisma.user.findUnique({
       where: { id },
       include: {
-        college: { select: { id: true, name: true, code: true } },
+        college: { select: { id: true, name: true, code: true, city: true, state: true } },
         seller: { select: { id: true, storeName: true, sellerType: true, status: true, rating: true } },
         preferences: true,
       },
@@ -90,6 +91,7 @@ export class UserRepository {
         },
         include: {
           seller: { select: { id: true } },
+          college: { select: { id: true, name: true, code: true, city: true, state: true } },
         },
       });
       return user;
@@ -102,6 +104,7 @@ export class UserRepository {
     bio?: string | null;
     phone?: string | null;
     avatarUrl?: string | null;
+    collegeId?: string | null;
   }) {
     return prisma.user.update({
       where: { id },
@@ -111,6 +114,10 @@ export class UserRepository {
         ...(data.bio !== undefined ? { bio: data.bio } : {}),
         ...(data.phone !== undefined ? { phone: data.phone } : {}),
         ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+        ...(data.collegeId !== undefined ? { collegeId: data.collegeId } : {}),
+      },
+      include: {
+        college: { select: { id: true, name: true, code: true, city: true, state: true } },
       },
     });
   }

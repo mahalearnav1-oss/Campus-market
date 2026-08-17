@@ -23,13 +23,16 @@ export const createProductSchema = z.object({
   allowedFulfillments: z.string().optional().default('CAMPUS_MEETUP,COURIER_SHIPPING'),
   bookDetails: bookDetailsSchema.optional().nullable(),
   images: z.array(z.object({
-    imageUrl: z.string().min(1, 'Image URL is required'),
+    imageUrl: z.string().trim().min(1, 'Image URL is required'),
     isPrimary: z.boolean().optional().default(false),
     displayOrder: z.number().int().optional().default(0),
-  })).optional().default([]),
+  })).min(1, 'At least one clear photo of the actual product is required'),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const updateProductSchema = createProductSchema.partial().refine(
+  (data) => data.images === undefined || data.images.length > 0,
+  { message: 'Product must have at least one product photo.', path: ['images'] }
+);
 
 export const productDiscoveryQuerySchema = z.object({
   q: z.string().trim().max(100, 'Search query cannot exceed 100 characters').optional(),

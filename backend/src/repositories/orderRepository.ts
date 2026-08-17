@@ -1,5 +1,5 @@
 import { prisma } from '../config/prisma';
-import { OrderStatus, FulfillmentMode, Prisma, ProductStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
+import { OrderStatus, FulfillmentMode, Prisma, ProductStatus, PaymentStatus, PaymentMethod, ReviewStatus } from '@prisma/client';
 import { generateOrderNumber } from '../utils/orderUtils';
 
 export interface OrderItemSnapshotInput {
@@ -34,6 +34,14 @@ export class OrderRepository {
               },
             },
           },
+        },
+        productReviews: {
+          where: { status: ReviewStatus.PUBLISHED },
+          select: { id: true, orderItemId: true, productId: true, rating: true, title: true, comment: true, createdAt: true, updatedAt: true },
+        },
+        sellerReviews: {
+          where: { status: ReviewStatus.PUBLISHED },
+          select: { id: true, sellerId: true, rating: true, comment: true, createdAt: true, updatedAt: true },
         },
         statusHistory: { orderBy: { createdAt: 'asc' } },
       },

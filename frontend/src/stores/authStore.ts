@@ -15,6 +15,7 @@ export interface UserSession {
   status: string;
   isStudentVerified: boolean;
   collegeId?: string | null;
+  college?: { id: string; name: string; code: string; city?: string; state?: string } | null;
   sellerId?: string | null;
 }
 
@@ -25,7 +26,7 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { firstName: string; lastName: string; email: string; password: string; role?: UserRole }) => Promise<void>;
+  register: (data: { firstName: string; lastName: string; email: string; password: string; role?: UserRole; collegeId?: string | null }) => Promise<void>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
   clearError: () => void;

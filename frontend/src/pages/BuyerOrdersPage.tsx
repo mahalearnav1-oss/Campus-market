@@ -117,6 +117,11 @@ export const BuyerOrdersPage: React.FC = () => {
                 </p>
 
                 <div className="flex items-center gap-3 shrink-0">
+                  {ord.status === 'COMPLETED' && (
+                    <Link to={`/orders/${ord.orderNumber}`} className="btn-secondary text-xs !py-2 !px-4 text-[#C8A46A] border-[#C8A46A]/50 hover:border-[#C8A46A] inline-flex items-center gap-1">
+                      <span>★</span> Rate & Review
+                    </Link>
+                  )}
                   <Link to={`/orders/${ord.orderNumber}`} className="btn-secondary text-xs !py-2 !px-4">
                     View Details
                   </Link>

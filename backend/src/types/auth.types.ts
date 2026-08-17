@@ -32,6 +32,7 @@ export interface SafeUserResponse {
   status: UserStatus;
   isStudentVerified: boolean;
   collegeId?: string | null;
+  college?: { id: string; name: string; code: string; city?: string; state?: string } | null;
   sellerId?: string | null;
   createdAt: Date;
 }

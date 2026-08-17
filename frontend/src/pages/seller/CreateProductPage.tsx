@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../../lib/api/client';
 import { queryClient } from '../../lib/queryClient';
 import { CategoryData } from '../MarketplacePage';
+import { ImageUpload } from '../../components/ImageUpload';
 
 export const CreateProductPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +25,9 @@ export const CreateProductPage: React.FC = () => {
 
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadCategories() {
@@ -40,11 +43,25 @@ export const CreateProductPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setImageError(null);
+
+    if (isUploading) {
+      setError('Please wait for the photo upload to finish before publishing.');
+      return;
+    }
+
+    if (!imageUrl || !imageUrl.trim()) {
+      const msg = 'Please upload at least one photo of the actual product before publishing.';
+      setImageError(msg);
+      setError(msg);
+      return;
+    }
+
     if (!title.trim() || !price || !categoryId) return;
 
     try {
       setIsSubmitting(true);
-      setError(null);
 
       const payload: any = {
         title: title.trim(),
@@ -55,7 +72,7 @@ export const CreateProductPage: React.FC = () => {
         conditionGrade,
         conditionNotes: conditionNotes.trim() || 'Verified condition grade by seller.',
         categoryId,
-        images: [{ imageUrl: imageUrl.trim() || '/images/collection_textbooks.png', isPrimary: true }],
+        images: [{ imageUrl: imageUrl.trim(), isPrimary: true }],
         bookDetails: author.trim() || isbn13.trim() || courseCode.trim() ? {
           author: author.trim() || 'Standard Course Author',
           isbn13: isbn13.trim() || undefined,
@@ -157,16 +174,18 @@ export const CreateProductPage: React.FC = () => {
           </div>
         </div>
 
-        <div>
-          <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">Image URL</label>
-          <input
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c"
-            className="input-editorial"
-          />
-        </div>
+        <ImageUpload
+          value={imageUrl}
+          onChange={(url) => {
+            setImageUrl(url);
+            if (url) setImageError(null);
+          }}
+          onUploadingChange={setIsUploading}
+          label="Product Photos"
+          helperText="Upload at least one clear photo of the actual book/product you are selling."
+          required={true}
+          error={imageError}
+        />
 
         <div>
           <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">Detailed Description</label>
@@ -200,10 +219,10 @@ export const CreateProductPage: React.FC = () => {
 
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="btn-primary w-full py-4 text-xs font-semibold uppercase tracking-wider"
+          disabled={isSubmitting || isUploading}
+          className="btn-primary w-full py-4 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
         >
-          {isSubmitting ? 'Creating Listing…' : 'Publish Listing'}
+          {isUploading ? 'Uploading Photo…' : isSubmitting ? 'Creating Listing…' : 'Publish Listing'}
         </button>
       </form>
     </div>

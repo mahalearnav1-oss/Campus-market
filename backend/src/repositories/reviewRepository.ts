@@ -8,7 +8,7 @@ export class ReviewRepository {
     orderItemId: string;
     authorUserId: string;
     rating: number;
-    title?: string;
+    title?: string | null;
     comment: string;
   }) {
     return prisma.productReview.create({
@@ -99,7 +99,7 @@ export class ReviewRepository {
     };
   }
 
-  async updateProductReview(id: string, data: { rating?: number; title?: string; comment?: string }) {
+  async updateProductReview(id: string, data: { rating?: number; title?: string | null; comment?: string }) {
     return prisma.productReview.update({
       where: { id },
       data: {

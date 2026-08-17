@@ -16,17 +16,22 @@ import reviewRoutes from './reviewRoutes';
 import messageRoutes from './messageRoutes';
 import notificationRoutes from './notificationRoutes';
 import adminRoutes from './adminRoutes';
+import collegeRoutes from './collegeRoutes';
+import uploadRoutes from './uploadRoutes';
 
 const router = Router();
 
 // API Version 1 Namespace
 router.use('/', healthRoutes);
 router.use('/auth', authRoutes);
+router.use('/upload', uploadRoutes);
 router.use('/users', userRoutes);
 router.use('/users/me/addresses', addressRoutes);
 router.use('/users/me/preferences', preferencesRoutes);
 router.use('/sellers', sellerRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/colleges', collegeRoutes);
+router.use('/campuses', collegeRoutes);
 router.use('/products', productRoutes);
 router.use('/cart', cartRoutes);
 router.use('/wishlist', wishlistRoutes);

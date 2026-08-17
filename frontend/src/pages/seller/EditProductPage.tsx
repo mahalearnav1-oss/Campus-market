@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../../lib/api/client';
 import { queryClient } from '../../lib/queryClient';
+import { ImageUpload } from '../../components/ImageUpload';
 
 export const EditProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,9 +13,12 @@ export const EditProductPage: React.FC = () => {
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [conditionGrade, setConditionGrade] = useState('GOOD');
+  const [imageUrl, setImageUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadProduct() {
@@ -28,6 +32,9 @@ export const EditProductPage: React.FC = () => {
         setPrice(String(p.price));
         setQuantity(String(p.quantity));
         setConditionGrade(p.conditionGrade);
+        if (p.images && p.images.length > 0) {
+          setImageUrl(p.images[0].imageUrl);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load product details.');
       } finally {
@@ -39,17 +46,32 @@ export const EditProductPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setImageError(null);
+
+    if (isUploading) {
+      setError('Please wait for the photo upload to finish before saving.');
+      return;
+    }
+
+    if (!imageUrl || !imageUrl.trim()) {
+      const msg = 'Please upload at least one photo of the actual product before saving.';
+      setImageError(msg);
+      setError(msg);
+      return;
+    }
+
     if (!id || !title.trim() || !price) return;
 
     try {
       setIsSubmitting(true);
-      setError(null);
       await apiClient.patch(`/products/${id}`, {
         title: title.trim(),
         description: description.trim(),
         price: parseFloat(price),
         quantity: parseInt(quantity, 10),
         conditionGrade,
+        images: [{ imageUrl: imageUrl.trim(), isPrimary: true }],
       });
       queryClient.invalidateQueries();
       navigate('/seller/products');
@@ -115,13 +137,30 @@ export const EditProductPage: React.FC = () => {
           </div>
         </div>
 
+        <ImageUpload
+          value={imageUrl}
+          onChange={(url) => {
+            setImageUrl(url);
+            if (url) setImageError(null);
+          }}
+          onUploadingChange={setIsUploading}
+          label="Product Photos"
+          helperText="At least 1 clear photo of the actual product is required."
+          required={true}
+          error={imageError}
+        />
+
         <div>
           <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">Description</label>
           <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="input-editorial w-full" />
         </div>
 
-        <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-4 text-xs font-semibold uppercase tracking-wider">
-          {isSubmitting ? 'Updating Listing…' : 'Save Changes'}
+        <button
+          type="submit"
+          disabled={isSubmitting || isUploading}
+          className="btn-primary w-full py-4 text-xs font-semibold uppercase tracking-wider disabled:opacity-50"
+        >
+          {isUploading ? 'Uploading Photo…' : isSubmitting ? 'Updating Listing…' : 'Save Changes'}
         </button>
       </form>
     </div>

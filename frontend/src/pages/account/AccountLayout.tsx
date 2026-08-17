@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
+import { formatUserRole } from '../../lib/formatters';
 
 export const AccountLayout: React.FC = () => {
   const location = useLocation();
@@ -33,9 +34,9 @@ export const AccountLayout: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="px-3.5 py-1.5 rounded-full bg-[#E7DED1] text-[#3B2A22] border border-[#D6C8B8] text-xs font-sans font-semibold uppercase tracking-wider">
-            {user?.role}
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="px-3.5 py-1.5 rounded-full bg-[#E7DED1] text-[#3B2A22] border border-[#D6C8B8] text-xs font-sans font-semibold">
+            {formatUserRole(user?.role)}
           </span>
           {user?.sellerId && (
             <Link to="/seller/products" className="btn-primary text-xs !py-2.5 !px-4">

@@ -38,6 +38,13 @@ export class ProductService {
       });
     }
 
+    if (!input.images || input.images.length === 0 || !input.images.some(img => img.imageUrl && img.imageUrl.trim().length > 0)) {
+      const error: any = new Error('At least one clear photo of the actual product is required.');
+      error.statusCode = 400;
+      error.code = 'PRODUCT_IMAGE_REQUIRED';
+      throw error;
+    }
+
     const product = await productRepository.createProduct({
       sellerId,
       collegeId: targetCollegeId,
@@ -127,6 +134,15 @@ export class ProductService {
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
+    }
+
+    if (input.images !== undefined) {
+      if (input.images.length === 0 || !input.images.some(img => img.imageUrl && img.imageUrl.trim().length > 0)) {
+        const error: any = new Error('Product listing must retain at least one valid product image.');
+        error.statusCode = 400;
+        error.code = 'PRODUCT_IMAGE_REQUIRED';
+        throw error;
+      }
     }
 
     const updated = await productRepository.updateProduct(productId, input);

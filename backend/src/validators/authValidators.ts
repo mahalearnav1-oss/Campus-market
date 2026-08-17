@@ -27,6 +27,7 @@ export const updateProfileSchema = z.object({
   bio: z.string().max(250).optional().nullable(),
   phone: z.string().max(20).optional().nullable(),
   avatarUrl: z.string().url('Invalid avatar URL').optional().nullable(),
+  collegeId: z.string().uuid('Invalid college ID format').optional().nullable(),
 });
 
 export const changePasswordSchema = z.object({

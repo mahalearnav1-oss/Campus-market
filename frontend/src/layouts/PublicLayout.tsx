@@ -4,6 +4,7 @@ import { useCampusStore } from '../stores/campusStore';
 import { useAuthStore } from '../stores/authStore';
 import { apiClient } from '../lib/api/client';
 import { NotificationBell } from '../components/notifications/NotificationBell';
+import { formatUserRole } from '../lib/formatters';
 
 export const PublicLayout: React.FC = () => {
   const { activeCampus } = useCampusStore();
@@ -231,7 +232,7 @@ export const PublicLayout: React.FC = () => {
                       <div className="absolute right-0 top-full mt-3 w-56 bg-[#EDE5D9] border border-[#D6C8B8] rounded-2xl shadow-2xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                         <div className="px-3 py-2 border-b border-[#D6C8B8] mb-1">
                           <p className="font-heading font-medium text-base text-[#3B2A22]">{user.firstName} {user.lastName}</p>
-                          <p className="font-sans text-[10px] text-[#8B7562] font-semibold tracking-wider uppercase mt-0.5">{user.role}</p>
+                          <p className="font-sans text-[10px] text-[#8B7562] font-semibold tracking-wider mt-0.5">{formatUserRole(user.role)}</p>
                         </div>
                         {isAdmin && (
                           <Link to="/admin" className="flex items-center gap-2 px-3 py-2 text-xs font-sans font-semibold text-[#3B2A22] bg-[#E7DED1] hover:bg-[#D9C8B7] border border-[#D6C8B8] rounded-xl transition-colors my-1">

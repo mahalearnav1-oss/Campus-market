@@ -188,7 +188,38 @@ export class OrderService {
       throw error;
     }
 
-    return order;
+    const itemsWithReviewStatus = order.items.map((item) => {
+      const existingReview = (order as any).productReviews?.find((r: any) => r.orderItemId === item.id) || null;
+      return {
+        ...item,
+        canReview: isBuyer && order.status === OrderStatus.COMPLETED && !!item.productId && !existingReview,
+        hasReviewed: !!existingReview,
+        review: existingReview ? {
+          id: existingReview.id,
+          rating: existingReview.rating,
+          title: existingReview.title,
+          comment: existingReview.comment,
+          createdAt: existingReview.createdAt,
+          updatedAt: existingReview.updatedAt,
+        } : null,
+      };
+    });
+
+    const existingSellerReview = (order as any).sellerReviews?.[0] || null;
+
+    return {
+      ...order,
+      items: itemsWithReviewStatus,
+      sellerReview: existingSellerReview ? {
+        id: existingSellerReview.id,
+        rating: existingSellerReview.rating,
+        comment: existingSellerReview.comment,
+        createdAt: existingSellerReview.createdAt,
+        updatedAt: existingSellerReview.updatedAt,
+      } : null,
+      canReviewSeller: isBuyer && order.status === OrderStatus.COMPLETED && !existingSellerReview,
+      hasReviewedSeller: !!existingSellerReview,
+    };
   }
 
   async cancelOrder(userId: string, orderNumber: string, input?: CancelOrderInput, ipAddress?: string) {

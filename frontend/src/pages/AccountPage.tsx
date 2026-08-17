@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { apiClient } from '../lib/api/client';
+import { formatUserRole, formatUserStatus } from '../lib/formatters';
 
 export const AccountPage: React.FC = () => {
   const { user, logout } = useAuthStore();
@@ -69,15 +70,28 @@ export const AccountPage: React.FC = () => {
         </div>
 
         {/* Metadata Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs pt-6 border-t border-[#D6C8B8]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-xs pt-6 border-t border-[#D6C8B8]">
+          <Link
+            to="/account/profile"
+            className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Campus</span>
+              <span className="text-[10px] text-[#C8A46A] opacity-0 group-hover:opacity-100 transition-opacity font-semibold">Edit →</span>
+            </div>
+            <span className="font-sans font-semibold text-[#3B2A22] block truncate" title={user.college?.name || 'Assigned Campus'}>
+              {user.college?.code || (user.college?.name ? user.college.name.substring(0, 16) : 'Verified Campus')}
+            </span>
+          </Link>
+
           <div className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8]">
             <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Role</span>
-            <span className="font-sans font-semibold text-[#3B2A22] uppercase tracking-wider">{user.role}</span>
+            <span className="font-sans font-semibold text-[#3B2A22] block truncate">{formatUserRole(user.role)}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8]">
             <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Account Status</span>
-            <span className="font-sans font-semibold text-[#6E8A62]">{user.status}</span>
+            <span className="font-sans font-semibold text-[#6E8A62] block truncate">{formatUserStatus(user.status)}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8]">
@@ -104,7 +118,7 @@ export const AccountPage: React.FC = () => {
 
           <div className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8]">
             <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Seller Profile</span>
-            <span className="font-sans font-semibold text-[#3B2A22]">
+            <span className="font-sans font-semibold text-[#3B2A22] block truncate">
               {user.sellerId ? 'Active Seller' : 'Buyer Account'}
             </span>
           </div>

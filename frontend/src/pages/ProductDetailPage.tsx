@@ -111,25 +111,6 @@ export const ProductDetailPage: React.FC = () => {
     }
   };
 
-  const handleMessageSeller = async () => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
-    if (!product) return;
-
-    try {
-      const res: any = await apiClient.post('/conversations', {
-        sellerId: product.seller.id,
-        productId: product.id,
-        initialMessage: `Hi! I am interested in your listing "${product.title}". Is it available for campus meetup?`,
-      });
-      navigate(`/messages/${res.data.conversation.id}`);
-    } catch (err: any) {
-      setError(err.message || 'Failed to start conversation with seller.');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto py-20 px-4 text-center">
@@ -243,6 +224,13 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             <h1 className="font-heading text-4xl font-normal text-[#3B2A22] leading-tight">{product.title}</h1>
+            <div className="flex items-center gap-2 pt-1">
+              <RatingStars rating={Number(reviewsData?.summary?.averageRating || 0)} size="sm" />
+              <span className="font-semibold text-xs text-[#3B2A22]">{reviewsData?.summary?.averageRating || '0.0'}</span>
+              <a href="#reviews" className="text-[11px] text-[#8B7562] hover:text-[#3B2A22] underline underline-offset-2 transition-colors">
+                ({reviewsData?.summary?.totalReviews || 0} {reviewsData?.summary?.totalReviews === 1 ? 'review' : 'reviews'})
+              </a>
+            </div>
 
             <div className="flex items-baseline gap-3 pt-2">
               <span className="font-heading text-4xl font-normal text-[#3B2A22]">
@@ -298,45 +286,45 @@ export const ProductDetailPage: React.FC = () => {
 
           {/* Seller Storefront & Message Card */}
           <div className="p-5 rounded-[28px] bg-[#EDE5D9] border border-[#D6C8B8] flex items-center justify-between text-xs gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-[#111111] text-[#F4EFE7] font-heading font-semibold flex items-center justify-center text-lg shadow-sm">
-                {product.seller.storeName.charAt(0)}
-              </div>
-              <div>
-                <h4 className="font-heading text-xl font-normal text-[#3B2A22]">{product.seller.storeName}</h4>
-                <p className="font-sans text-[11px] text-[#8B7562] flex items-center gap-1">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#C8A46A" stroke="none">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                  {product.seller.rating} • {product.seller.totalSalesCount} sales
-                </p>
+            <div>
+              <span className="text-[#8B7562] block font-semibold text-[10px] uppercase">Storefront Seller</span>
+              <Link to={`/sellers/${product.seller.id}`} className="font-heading text-xl font-normal text-[#3B2A22] hover:text-[#8B6A4F] transition-colors">
+                {product.seller.storeName}
+              </Link>
+              <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-[#8B7562]">
+                <RatingStars rating={Number(product.seller.rating || 5)} size="sm" />
+                <span>({Number(product.seller.rating || 5.0).toFixed(1)}★ • {product.seller.totalSalesCount || 0} sales)</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button onClick={handleMessageSeller} className="btn-primary text-xs !py-2.5 !px-4 flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                Message
-              </button>
-              <Link to={`/sellers/${product.seller.id}`} className="btn-secondary text-xs !py-2.5 !px-4">
-                Storefront
-              </Link>
-            </div>
+            <button
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                  return;
+                }
+                navigate('/messages?sellerId=' + product.seller.id + '&productId=' + product.id);
+              }}
+              className="btn-secondary !py-2.5 !px-4 text-xs font-semibold uppercase flex items-center gap-1.5"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              Chat Seller
+            </button>
           </div>
 
-          {/* Cart & Wishlist Action Area */}
-          <div className="space-y-4 pt-2">
-            {product.quantity > 1 && isAvailable && (
-              <div className="flex items-center gap-3 font-sans text-xs">
-                <span className="font-semibold text-[#3B2A22]">Quantity:</span>
+          {/* Purchase Actions Card */}
+          <div className="p-6 rounded-[28px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-subtle space-y-4">
+            {isAvailable && (
+              <div className="flex items-center justify-between font-sans text-xs">
+                <label className="font-semibold text-[#3B2A22]">Order Quantity:</label>
                 <select
                   value={purchaseQty}
-                  onChange={(e) => setPurchaseQty(parseInt(e.target.value, 10))}
-                  className="input-editorial w-auto py-2 px-4 cursor-pointer font-semibold"
+                  onChange={(e) => setPurchaseQty(Number(e.target.value))}
+                  className="bg-[#E7DED1] border border-[#D6C8B8] rounded-xl px-3 py-1.5 font-sans text-xs font-semibold text-[#3B2A22]"
                 >
-                  {Array.from({ length: Math.min(product.quantity, 10) }).map((_, i) => (
+                  {Array.from({ length: Math.min(product.quantity, 5) }).map((_, i) => (
                     <option key={i + 1} value={i + 1}>
                       {i + 1}
                     </option>
@@ -383,30 +371,35 @@ export const ProductDetailPage: React.FC = () => {
       </div>
 
       {/* Product Reviews Section */}
-      <div className="p-8 sm:p-10 rounded-[32px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-subtle space-y-6 font-sans text-xs">
-        <h2 className="font-heading text-3xl font-normal text-[#3B2A22] border-b border-[#D6C8B8] pb-4">
-          Verified Buyer Reviews ({reviewsData?.summary.totalReviews || 0})
-        </h2>
+      <div id="reviews" className="p-8 sm:p-10 rounded-[32px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-subtle space-y-6 font-sans text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#D6C8B8] pb-4">
+          <h2 className="font-heading text-3xl font-normal text-[#3B2A22]">
+            Verified Buyer Reviews ({reviewsData?.summary.totalReviews || 0})
+          </h2>
+          <span className="text-[#8B7562] text-xs">
+            Reviews from verified campus purchases
+          </span>
+        </div>
 
         {reviewsData && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-6 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] text-center space-y-2">
+            <div className="p-6 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] text-center space-y-2 flex flex-col justify-center">
               <span className="font-heading text-5xl font-normal text-[#3B2A22]">{reviewsData.summary.averageRating}</span>
               <div className="flex justify-center">
                 <RatingStars rating={Number(reviewsData.summary.averageRating)} size="lg" />
               </div>
-              <p className="text-[#8B7562] text-xs font-semibold">{reviewsData.summary.totalReviews} verified ratings</p>
+              <p className="text-[#8B7562] text-xs font-semibold">{reviewsData.summary.totalReviews} verified {reviewsData.summary.totalReviews === 1 ? 'rating' : 'ratings'}</p>
             </div>
 
             <div className="md:col-span-2 space-y-2 justify-center flex flex-col">
               {[5, 4, 3, 2, 1].map((stars) => {
-                const count = reviewsData.summary.distribution[stars] || 0;
+                const count = reviewsData.summary.distribution?.[stars] || 0;
                 const pct = reviewsData.summary.totalReviews > 0 ? (count / reviewsData.summary.totalReviews) * 100 : 0;
                 return (
                   <div key={stars} className="flex items-center gap-3 text-xs">
                     <span className="w-14 font-semibold text-[#6E5948]">{stars} Stars</span>
                     <div className="flex-1 h-2.5 bg-[#E7DED1] border border-[#D6C8B8] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#C8A46A] rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-[#C8A46A] rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
                     </div>
                     <span className="w-8 text-right font-mono text-[#8B7562]">{count}</span>
                   </div>
@@ -418,15 +411,22 @@ export const ProductDetailPage: React.FC = () => {
 
         {/* Review Cards List */}
         {!reviewsData || reviewsData.reviews.length === 0 ? (
-          <div className="text-center py-8 text-[#8B7562]">No buyer reviews submitted yet for this product.</div>
+          <div className="text-center py-12 px-6 rounded-2xl bg-[#E7DED1]/50 border border-[#D6C8B8] text-[#8B7562] space-y-2">
+            <p className="font-heading text-2xl text-[#3B2A22]">No Reviews Yet</p>
+            <p className="max-w-md mx-auto leading-relaxed">
+              No verified student reviews have been submitted for this listing yet. Verified buyers can submit a rating upon order completion.
+            </p>
+          </div>
         ) : (
           <div className="divide-y divide-[#D6C8B8] pt-2 space-y-4">
             {reviewsData.reviews.map((rev) => (
               <div key={rev.id} className="pt-4 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-[#3B2A22]">{rev.author.firstName} {rev.author.lastName[0]}.</span>
-                    <span className="px-2.5 py-0.5 bg-[#6E8A62]/15 text-[#6E8A62] font-bold text-[10px] rounded-full">
+                    <span className="font-semibold text-[#3B2A22]">
+                      {rev.author?.firstName} {rev.author?.lastName ? `${rev.author.lastName.charAt(0)}.` : ''}
+                    </span>
+                    <span className="px-2.5 py-0.5 bg-[#6E8A62]/15 text-[#6E8A62] font-bold text-[10px] rounded-full border border-[#6E8A62]/30">
                       Verified Purchase
                     </span>
                   </div>
@@ -434,7 +434,11 @@ export const ProductDetailPage: React.FC = () => {
                 </div>
                 <RatingStars rating={rev.rating} size="sm" />
                 {rev.title && <h4 className="font-heading text-xl font-normal text-[#3B2A22]">{rev.title}</h4>}
-                <p className="text-[#6E5948] leading-relaxed">{rev.comment}</p>
+                {rev.comment ? (
+                  <p className="text-[#6E5948] leading-relaxed">{rev.comment}</p>
+                ) : (
+                  <p className="text-[#8B7562] italic text-[11px]">(Rating only)</p>
+                )}
               </div>
             ))}
           </div>

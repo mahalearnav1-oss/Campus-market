@@ -296,6 +296,18 @@ export class ProductRepository {
         });
       }
 
+      if (input.images && input.images.length > 0) {
+        await tx.productImage.deleteMany({ where: { productId } });
+        await tx.productImage.createMany({
+          data: input.images.map((img, idx) => ({
+            productId,
+            imageUrl: img.imageUrl,
+            isPrimary: img.isPrimary !== undefined ? img.isPrimary : idx === 0,
+            displayOrder: img.displayOrder || idx + 1,
+          })),
+        });
+      }
+
       return updated;
     });
   }

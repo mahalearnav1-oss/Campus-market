@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore, UserRole } from '../stores/authStore';
+import { apiClient } from '../lib/api/client';
+
+export interface CollegeOption {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  state: string;
+}
 
 export const RegisterPage: React.FC = () => {
   const [firstName, setFirstName] = useState('');
@@ -8,13 +17,54 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('STUDENT_BUYER');
+  const [collegeId, setCollegeId] = useState('');
+  const [colleges, setColleges] = useState<CollegeOption[]>([]);
+  const [isLoadingColleges, setIsLoadingColleges] = useState(true);
+  const [collegeFetchError, setCollegeFetchError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   const { register, error, isLoading, clearError } = useAuthStore();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    let isMounted = true;
+    async function loadColleges() {
+      try {
+        setIsLoadingColleges(true);
+        setCollegeFetchError(null);
+        const res: any = await apiClient.get('/colleges');
+        if (isMounted) {
+          const list = res?.data?.colleges || [];
+          setColleges(list);
+          if (list.length > 0) {
+            setCollegeId(list[0].id);
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) {
+          setCollegeFetchError('Failed to load campus list. Please refresh or try again.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingColleges(false);
+        }
+      }
+    }
+    loadColleges();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
+    if (!collegeId) {
+      setValidationError('Please select your university campus to continue.');
+      return;
+    }
     try {
-      await register({ firstName, lastName, email, password, role });
+      await register({ firstName, lastName, email, password, role, collegeId });
       navigate('/account');
     } catch (err) {
       // Handled in store
@@ -75,10 +125,19 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {(error || validationError) && (
             <div className="mb-6 flex items-center justify-between gap-2 p-4 rounded-2xl border border-[#9B5C52]/30 bg-[#9B5C52]/10">
-              <span className="font-sans text-xs text-[#9B5C52]">{error}</span>
-              <button onClick={clearError} className="text-[#9B5C52] hover:text-[#3B2A22] transition-colors">✕</button>
+              <span className="font-sans text-xs text-[#9B5C52]">{error || validationError}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  clearError();
+                  setValidationError(null);
+                }}
+                className="text-[#9B5C52] hover:text-[#3B2A22] transition-colors"
+              >
+                ✕
+              </button>
             </div>
           )}
 
@@ -93,7 +152,7 @@ export const RegisterPage: React.FC = () => {
                   type="text"
                   required
                   value={firstName}
-                  onChange={(e) => { clearError(); setFirstName(e.target.value); }}
+                  onChange={(e) => { clearError(); setValidationError(null); setFirstName(e.target.value); }}
                   placeholder="Alice"
                   className="input-editorial"
                   autoComplete="given-name"
@@ -108,12 +167,53 @@ export const RegisterPage: React.FC = () => {
                   type="text"
                   required
                   value={lastName}
-                  onChange={(e) => { clearError(); setLastName(e.target.value); }}
+                  onChange={(e) => { clearError(); setValidationError(null); setLastName(e.target.value); }}
                   placeholder="Smith"
                   className="input-editorial"
                   autoComplete="family-name"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">
+                University Campus <span className="text-[#9B5C52]">*</span>
+              </label>
+              {isLoadingColleges ? (
+                <div className="input-editorial flex items-center justify-between text-xs text-[#8B7562] py-3.5 px-5">
+                  <span>Loading available campuses…</span>
+                  <div className="w-4 h-4 rounded-full border-2 border-[#C8A46A] border-t-transparent animate-spin" />
+                </div>
+              ) : collegeFetchError ? (
+                <div className="p-3 rounded-2xl border border-[#9B5C52]/30 bg-[#9B5C52]/10 text-[#9B5C52] text-xs font-sans flex items-center justify-between">
+                  <span>{collegeFetchError}</span>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="underline text-[11px] font-semibold"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <select
+                  required
+                  value={collegeId}
+                  onChange={(e) => {
+                    clearError();
+                    setValidationError(null);
+                    setCollegeId(e.target.value);
+                  }}
+                  className="input-editorial cursor-pointer"
+                >
+                  <option value="">Select your university / campus…</option>
+                  {colleges.map((col) => (
+                    <option key={col.id} value={col.id}>
+                      {col.name} ({col.code}) — {col.city}, {col.state}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
@@ -124,7 +224,7 @@ export const RegisterPage: React.FC = () => {
                 type="email"
                 required
                 value={email}
-                onChange={(e) => { clearError(); setEmail(e.target.value); }}
+                onChange={(e) => { clearError(); setValidationError(null); setEmail(e.target.value); }}
                 placeholder="you@university.edu"
                 className="input-editorial"
                 autoComplete="email"
@@ -139,7 +239,7 @@ export const RegisterPage: React.FC = () => {
                 type="password"
                 required
                 value={password}
-                onChange={(e) => { clearError(); setPassword(e.target.value); }}
+                onChange={(e) => { clearError(); setValidationError(null); setPassword(e.target.value); }}
                 placeholder="••••••••"
                 className="input-editorial"
                 autoComplete="new-password"
@@ -163,7 +263,7 @@ export const RegisterPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isLoadingColleges}
               className="btn-primary w-full py-4 text-xs font-semibold uppercase tracking-wider mt-4"
             >
               {isLoading ? 'Creating Account…' : 'Create Free Account'}
