@@ -41,6 +41,7 @@ export const productDiscoveryQuerySchema = z.object({
   condition: z.nativeEnum(ConditionGrade).optional(),
   sellerType: z.nativeEnum(SellerType).optional(),
   collegeId: z.string().optional(),
+  campusId: z.string().optional(),
   availableOnly: z.coerce.boolean().optional().default(true),
   sort: z.enum(['newest', 'oldest', 'price_asc', 'price_desc', 'recently_updated']).optional().default('newest'),
   page: z.coerce.number().int().min(1).optional().default(1),

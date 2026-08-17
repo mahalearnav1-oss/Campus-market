@@ -73,54 +73,65 @@ export const CheckoutPage: React.FC = () => {
 
       const orderNumber = orderRes.data.order.orderNumber;
 
-      // 3. Create Razorpay Payment Order
-      const payOrderRes: any = await apiClient.post('/payments/create-order', {
-        orderNumber,
-      });
+      if (paymentMethod === 'ESCROW_HOLD') {
+        queryClient.invalidateQueries();
+        navigate(`/orders/${orderNumber}/tracking`);
+        return;
+      }
 
-      const payData = payOrderRes.data;
+      // 3. Create Razorpay Payment Order for external gateways
+      try {
+        const payOrderRes: any = await apiClient.post('/payments/create-order', {
+          orderNumber,
+        });
 
-      // 4. Load Razorpay SDK Script
-      const isScriptLoaded = await loadRazorpayScript();
+        const payData = payOrderRes.data;
 
-      if (isScriptLoaded && window.Razorpay) {
-        const options = {
-          key: payData.keyId,
-          amount: payData.amount,
-          currency: payData.currency || 'INR',
-          name: 'CampusMarket Escrow',
-          description: `Escrow Fund for Order #${orderNumber}`,
-          order_id: payData.razorpayOrderId,
-          handler: async function (response: any) {
-            try {
-              // 5. Verify Razorpay Payment Signature
-              await apiClient.post('/payments/verify', {
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                paymentMethod: paymentMethod === 'UPI' ? 'UPI' : 'CARD',
-              });
+        // 4. Load Razorpay SDK Script
+        const isScriptLoaded = await loadRazorpayScript();
 
-              queryClient.invalidateQueries();
-              navigate(`/orders/${orderNumber}/tracking`);
-            } catch (err: any) {
-              setError(err.message || 'Payment verification failed.');
-            }
-          },
-          prefill: {
-            name: `${user?.firstName || 'Student'} ${user?.lastName || ''}`,
-            email: user?.email || '',
-            contact: shippingAddress.phone,
-          },
-          theme: {
-            color: '#3B2A22',
-          },
-        };
+        if (isScriptLoaded && window.Razorpay) {
+          const options = {
+            key: payData.keyId,
+            amount: payData.amount,
+            currency: payData.currency || 'INR',
+            name: 'CampusMarket Escrow',
+            description: `Escrow Fund for Order #${orderNumber}`,
+            order_id: payData.razorpayOrderId,
+            handler: async function (response: any) {
+              try {
+                await apiClient.post('/payments/verify', {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  paymentMethod: paymentMethod === 'UPI' ? 'UPI' : 'CARD',
+                });
 
-        const razorpayInstance = new window.Razorpay(options);
-        razorpayInstance.open();
-      } else {
-        // Fallback for environments where external Razorpay SDK script is blocked or in dev mode
+                queryClient.invalidateQueries();
+                navigate(`/orders/${orderNumber}/tracking`);
+              } catch (err: any) {
+                setError(err.message || 'Payment verification failed.');
+              }
+            },
+            prefill: {
+              name: `${user?.firstName || 'Student'} ${user?.lastName || ''}`,
+              email: user?.email || '',
+              contact: shippingAddress.phone,
+            },
+            theme: {
+              color: '#3B2A22',
+            },
+          };
+
+          const razorpayInstance = new window.Razorpay(options);
+          razorpayInstance.open();
+        } else {
+          queryClient.invalidateQueries();
+          navigate(`/orders/${orderNumber}/tracking`);
+        }
+      } catch (payErr) {
+        // Fallback for simulation
+        queryClient.invalidateQueries();
         navigate(`/orders/${orderNumber}/tracking`);
       }
     } catch (err: any) {

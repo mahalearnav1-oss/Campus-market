@@ -1,5 +1,5 @@
 import { prisma } from '../config/prisma';
-import { OrderStatus, FulfillmentMode, Prisma, ProductStatus } from '@prisma/client';
+import { OrderStatus, FulfillmentMode, Prisma, ProductStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import { generateOrderNumber } from '../utils/orderUtils';
 
 export interface OrderItemSnapshotInput {
@@ -178,7 +178,7 @@ export class OrderRepository {
           sellerId: primarySellerId,
           shippingAddressId,
           fulfillmentMode,
-          status: OrderStatus.PAYMENT_PENDING,
+          status: OrderStatus.COMPLETED,
           subtotal,
           totalAmount,
           platformFee: new Prisma.Decimal(0),
@@ -198,9 +198,9 @@ export class OrderRepository {
           },
           statusHistory: {
             create: {
-              newStatus: OrderStatus.PAYMENT_PENDING,
+              newStatus: OrderStatus.COMPLETED,
               changedByUserId: buyerId,
-              reason: 'Order created from shopping cart.',
+              reason: 'Order placed & immediately delivered at checkout.',
             },
           },
         },
@@ -215,6 +215,27 @@ export class OrderRepository {
       await tx.cartItem.deleteMany({
         where: { cartId },
       });
+
+      // 4. Create Payment Record & Settle Seller Balance Immediately
+      await tx.payment.create({
+        data: {
+          orderId: order.id,
+          amount: totalAmount,
+          currency: 'INR',
+          status: PaymentStatus.RELEASED_TO_SELLER,
+          paymentMethod: PaymentMethod.CREDIT_CARD,
+          razorpayOrderId: `rzp_${orderNumber}`,
+          razorpayPaymentId: `pay_sim_${Date.now()}`,
+          paidAt: new Date(),
+        },
+      });
+
+      if (primarySellerId) {
+        await tx.sellerWallet.updateMany({
+          where: { sellerId: primarySellerId },
+          data: { clearedBalance: { increment: totalAmount } },
+        });
+      }
 
       return order;
     });

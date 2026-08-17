@@ -78,7 +78,7 @@ export class ProductService {
       maxPrice: query.maxPrice,
       conditions,
       sellerType: query.sellerType,
-      collegeId: query.collegeId,
+      collegeId: query.collegeId || query.campusId,
       availableOnly: query.availableOnly,
       sort: query.sort,
       page: query.page || 1,

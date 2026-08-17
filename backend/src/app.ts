@@ -31,9 +31,23 @@ export const createApp = (): Application => {
   );
 
   // CORS Configuration
+  const allowedOrigins = [
+    config.frontendUrl,
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+  ];
+
   app.use(
     cors({
-      origin: config.frontendUrl,
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || (config.env === 'development' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin))) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       credentials: true,
     })
   );

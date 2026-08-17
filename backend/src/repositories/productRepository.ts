@@ -102,9 +102,15 @@ export class ProductRepository {
       status: ProductStatus.ACTIVE,
       deletedAt: null,
       ...(availableOnly ? { quantity: { gt: 0 } } : {}),
-      ...(collegeId ? { collegeId } : {}),
       ...(subcategoryId ? { subcategoryId } : {}),
     };
+
+    if (collegeId && collegeId !== 'all' && collegeId !== 'default-pcet-uuid') {
+      where.OR = [
+        { collegeId },
+        { college: { code: collegeId } },
+      ];
+    }
 
     // Category Filter (support categoryId or categorySlugOrId)
     if (categoryId) {

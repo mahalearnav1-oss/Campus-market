@@ -377,7 +377,7 @@ model Category {
   icon         String?
   displayOrder Int      @default(0)
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt    DateTime @default(now()) @updatedAt
 
   subcategories Subcategory[]
   products      Product[]
@@ -392,7 +392,7 @@ model Subcategory {
   slug        String   @unique
   description String?  @db.Text
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   products Product[]
@@ -404,24 +404,24 @@ model Subcategory {
 model Product {
   id                  String         @id @default(uuid())
   sellerId            String
-  collegeId           String
+  collegeId           String?
   categoryId          String
   subcategoryId       String?
   title               String
   description         String         @db.Text
   conditionGrade      ConditionGrade
-  conditionNotes      String         @db.Text
+  conditionNotes      String?        @db.Text
   price               Decimal        @db.Decimal(10, 2)
   originalMsrp        Decimal?       @db.Decimal(10, 2)
   quantity            Int            @default(1)
   status              ProductStatus  @default(ACTIVE)
   allowedFulfillments String         @default("CAMPUS_MEETUP,COURIER_SHIPPING") // Comma-separated list for MySQL compatibility
   createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  updatedAt           DateTime       @default(now()) @updatedAt
   deletedAt           DateTime?
 
   seller        Seller          @relation(fields: [sellerId], references: [id], onDelete: Restrict)
-  college       College         @relation(fields: [collegeId], references: [id], onDelete: Restrict)
+  college       College?        @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   category      Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   subcategory   Subcategory?    @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   images        ProductImage[]
@@ -450,7 +450,7 @@ model BookDetails {
   edition    String?
   courseCode String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime @default(now()) @updatedAt
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 

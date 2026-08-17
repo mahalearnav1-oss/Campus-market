@@ -1,10 +1,10 @@
 import { PrismaClient, UserRole, UserStatus, SellerType, SellerStatus, ConditionGrade, ProductStatus } from '@prisma/client';
-import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
+  return bcrypt.hashSync(password, 10);
 }
 
 async function main() {
@@ -56,7 +56,7 @@ async function main() {
   // 2. Create Admin User
   await prisma.user.upsert({
     where: { email: 'admin@harvard.edu' },
-    update: {},
+    update: { passwordHash: hashPassword('AdminSecure2026!') },
     create: {
       email: 'admin@harvard.edu',
       passwordHash: hashPassword('AdminSecure2026!'),
@@ -65,14 +65,14 @@ async function main() {
       role: UserRole.ADMIN,
       status: UserStatus.ACTIVE,
       isStudentVerified: true,
-      collegeId: harvard.id,
+      collegeId: pcet.id,
     },
   });
 
   // 3. Create Student Seller User 1 (Alice)
   const studentSeller1 = await prisma.user.upsert({
     where: { email: 'alice.seller@harvard.edu' },
-    update: {},
+    update: { passwordHash: hashPassword('StudentPass123!') },
     create: {
       email: 'alice.seller@harvard.edu',
       passwordHash: hashPassword('StudentPass123!'),
@@ -81,7 +81,7 @@ async function main() {
       role: UserRole.STUDENT_SELLER,
       status: UserStatus.ACTIVE,
       isStudentVerified: true,
-      collegeId: harvard.id,
+      collegeId: pcet.id,
       seller: {
         create: {
           sellerType: SellerType.STUDENT,
@@ -100,7 +100,7 @@ async function main() {
   // 4. Create Student Seller User 2 (Bob)
   const studentSeller2 = await prisma.user.upsert({
     where: { email: 'bob.seller@mit.edu' },
-    update: {},
+    update: { passwordHash: hashPassword('StudentPass123!') },
     create: {
       email: 'bob.seller@mit.edu',
       passwordHash: hashPassword('StudentPass123!'),
@@ -128,7 +128,7 @@ async function main() {
   // 5. Create Commercial Bookstore Seller (Crimson Bookstore)
   const bookstoreSeller = await prisma.user.upsert({
     where: { email: 'contact@crimsonbooks.com' },
-    update: {},
+    update: { passwordHash: hashPassword('BookstorePass123!') },
     create: {
       email: 'contact@crimsonbooks.com',
       passwordHash: hashPassword('BookstorePass123!'),
@@ -137,7 +137,7 @@ async function main() {
       role: UserRole.COMMERCIAL_BOOKSTORE,
       status: UserStatus.ACTIVE,
       isStudentVerified: true,
-      collegeId: harvard.id,
+      collegeId: pcet.id,
       seller: {
         create: {
           sellerType: SellerType.COMMERCIAL_BOOKSTORE,
@@ -194,7 +194,7 @@ async function main() {
     await prisma.product.create({
       data: {
         sellerId: studentSeller1.seller.id,
-        collegeId: harvard.id,
+        collegeId: pcet.id,
         categoryId: textbooksCat.id,
         title: 'Organic Chemistry (8th Edition)',
         description: 'Used for CHEM201 last semester. Minor yellow highlighting in Chapters 1-3. Binding and spine completely intact.',
@@ -226,7 +226,7 @@ async function main() {
     await prisma.product.create({
       data: {
         sellerId: studentSeller1.seller.id,
-        collegeId: harvard.id,
+        collegeId: pcet.id,
         categoryId: textbooksCat.id,
         title: 'Thomas Calculus: Early Transcendentals (14th Edition)',
         description: 'Required textbook for MATH21A/B. Clean pages with zero markings. Includes hardcover protection sleeve.',
@@ -326,7 +326,7 @@ async function main() {
     await prisma.product.create({
       data: {
         sellerId: bookstoreSeller.seller.id,
-        collegeId: harvard.id,
+        collegeId: pcet.id,
         categoryId: electronicsCat.id,
         title: 'Texas Instruments TI-84 Plus CE Color Graphing Calculator',
         description: 'Refurbished TI-84 Plus CE Color Screen calculator. Tested, cleared memory, includes USB charging cable & rechargeable battery.',
@@ -349,7 +349,7 @@ async function main() {
     await prisma.product.create({
       data: {
         sellerId: bookstoreSeller.seller.id,
-        collegeId: harvard.id,
+        collegeId: pcet.id,
         categoryId: toolsCat.id,
         title: 'Complete Biology & Anatomy Dissection Tool Set (15-Piece)',
         description: 'Stainless steel surgical grade dissection instruments including scalpels, forceps, curved scissors, and zipper case.',
@@ -372,7 +372,7 @@ async function main() {
     await prisma.product.create({
       data: {
         sellerId: bookstoreSeller.seller.id,
-        collegeId: harvard.id,
+        collegeId: pcet.id,
         categoryId: textbooksCat.id,
         title: 'Atlas of Human Anatomy (7th Edition)',
         description: 'Illustrated medical student atlas with full-color anatomical diagrams by Frank H. Netter, MD.',
@@ -404,7 +404,7 @@ async function main() {
     await prisma.product.create({
       data: {
         sellerId: bookstoreSeller.seller.id,
-        collegeId: harvard.id,
+        collegeId: pcet.id,
         categoryId: textbooksCat.id,
         title: 'Python for Data Analysis & Machine Learning (3rd Edition)',
         description: 'Essential guide for Pandas, NumPy, and Scikit-Learn data science courses (CS109).',
