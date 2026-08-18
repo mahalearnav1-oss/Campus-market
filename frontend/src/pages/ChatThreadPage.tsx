@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { useAuthStore } from '../stores/authStore';
+import { formatINR } from '../lib/formatters';
 
 export interface ChatMessage {
   id: string;
@@ -46,7 +47,7 @@ export const ChatThreadPage: React.FC = () => {
       setThread(res.data.conversation);
     } catch (err: any) {
       if (!silent) {
-        setError(err.message || 'Failed to load conversation thread.');
+        setError(err.message || 'Couldn\'t load this chat. Please try again.');
       }
     } finally {
       if (!silent) setIsLoading(false);
@@ -82,7 +83,7 @@ export const ChatThreadPage: React.FC = () => {
       setNewMessageText('');
       setThread((prev) => (prev ? { ...prev, messages: [...prev.messages, res.data.message] } : null));
     } catch (err: any) {
-      setSendError(err.message || 'Failed to send message. Please try again.');
+      setSendError(err.message || 'Couldn\'t send message. Please try again.');
     } finally {
       setIsSending(false);
     }
@@ -96,7 +97,7 @@ export const ChatThreadPage: React.FC = () => {
       setReportingMessageId(null);
       setReportReason('');
     } catch (err: any) {
-      alert(err.message || 'Failed to report message.');
+      alert(err.message || 'Couldn\'t submit report. Please try again.');
     }
   };
 
@@ -119,7 +120,7 @@ export const ChatThreadPage: React.FC = () => {
         </div>
         <div>
           <h2 className="font-heading text-3xl font-normal text-[#3B2A22] mb-2">Conversation Unavailable</h2>
-          <p className="font-sans text-xs text-[#6E5948] leading-relaxed">{error || 'Conversation not found or access denied.'}</p>
+          <p className="font-sans text-xs text-[#6E5948] leading-relaxed">{error || 'We couldn\'t find this chat or you don\'t have permission to view it.'}</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => fetchThread()} className="btn-secondary flex-1 text-xs">
@@ -193,7 +194,7 @@ export const ChatThreadPage: React.FC = () => {
                   {thread.product.title}
                 </h4>
                 <p className="font-sans text-xs font-semibold text-[#C8A46A]">
-                  ₹{Number(thread.product.price).toLocaleString('en-IN')}
+                  {formatINR(thread.product.price)}
                 </p>
               </div>
             </Link>

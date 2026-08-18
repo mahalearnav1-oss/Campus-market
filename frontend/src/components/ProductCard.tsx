@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { formatINR } from '../lib/formatters';
 
 export interface ProductCardData {
   id: string;
@@ -130,12 +131,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <div>
             {numMsrp && numMsrp > numPrice && (
               <span className="font-sans text-[11px] text-[#8B7562] line-through block font-medium">
-                ₹{numMsrp.toLocaleString('en-IN')}
+                {formatINR(numMsrp)}
               </span>
             )}
 
             <div className="font-heading text-2xl font-normal text-[#3B2A22]">
-              ₹{numPrice.toLocaleString('en-IN')}
+              {formatINR(numPrice)}
             </div>
           </div>
 

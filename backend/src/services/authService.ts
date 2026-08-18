@@ -65,7 +65,7 @@ export class AuthService {
     // Generic error message to prevent account enumeration
     if (!user || !user.passwordHash) {
       await logAuditEvent('FAILED_LOGIN_ATTEMPT', 'User', null, null, { email: input.email }, ipAddress);
-      const error: any = new Error('Invalid email address or password.');
+      const error: any = new Error('Email or password is incorrect.');
       error.statusCode = 401;
       error.code = 'INVALID_CREDENTIALS';
       throw error;
@@ -81,7 +81,7 @@ export class AuthService {
     const isMatch = await comparePassword(input.password, user.passwordHash);
     if (!isMatch) {
       await logAuditEvent('FAILED_LOGIN_ATTEMPT', 'User', user.id, user.id, { reason: 'Invalid password' }, ipAddress);
-      const error: any = new Error('Invalid email address or password.');
+      const error: any = new Error('Email or password is incorrect.');
       error.statusCode = 401;
       error.code = 'INVALID_CREDENTIALS';
       throw error;
@@ -124,7 +124,7 @@ export class AuthService {
 
   async refreshToken(cookieToken: string | undefined, res: Response) {
     if (!cookieToken) {
-      const error: any = new Error('Refresh token missing from request.');
+      const error: any = new Error('Your session could not be refreshed. Please sign in again.');
       error.statusCode = 401;
       error.code = 'MISSING_REFRESH_TOKEN';
       throw error;
@@ -135,7 +135,7 @@ export class AuthService {
       payload = verifyRefreshToken(cookieToken);
     } catch (err) {
       clearRefreshTokenCookie(res);
-      const error: any = new Error('Refresh token expired or invalid.');
+      const error: any = new Error('Your session has expired. Please sign in again.');
       error.statusCode = 401;
       error.code = 'INVALID_REFRESH_TOKEN';
       throw error;
@@ -144,7 +144,7 @@ export class AuthService {
     const user = await userRepository.findById(payload.userId);
     if (!user || user.status === UserStatus.SUSPENDED || user.status === UserStatus.BANNED) {
       clearRefreshTokenCookie(res);
-      const error: any = new Error('User account is invalid or suspended.');
+      const error: any = new Error('Your account is unavailable. Please sign in again or contact campus support.');
       error.statusCode = 401;
       error.code = 'UNAUTHORIZED';
       throw error;
@@ -176,7 +176,7 @@ export class AuthService {
   async getMe(userId: string) {
     const user = await userRepository.findById(userId);
     if (!user) {
-      const error: any = new Error('User not found.');
+      const error: any = new Error('We couldn\'t find an account for this user.');
       error.statusCode = 404;
       error.code = 'USER_NOT_FOUND';
       throw error;

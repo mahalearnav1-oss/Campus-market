@@ -4,21 +4,21 @@ import { UserRole } from '@prisma/client';
 export const registerSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required').max(50),
   lastName: z.string().trim().min(1, 'Last name is required').max(50),
-  email: z.string().email('Invalid email address format').toLowerCase().trim(),
-  password: z.string().min(4, 'Password must be at least 4 characters long'),
-  collegeId: z.string().uuid('Invalid college ID format').optional().nullable(),
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  password: z.string().min(4, 'Password must be at least 4 characters'),
+  collegeId: z.string().uuid('Please select a valid campus').optional().nullable(),
   role: z
     .nativeEnum(UserRole)
     .refine((val) => val !== UserRole.ADMIN && val !== UserRole.SUPER_ADMIN, {
-      message: 'Self-registration as Admin is prohibited',
+      message: 'Administrator accounts cannot be registered directly.',
     })
     .optional()
     .default(UserRole.STUDENT_BUYER),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email('Invalid email address format').toLowerCase().trim(),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
+  password: z.string().min(1, 'Please enter your password'),
 });
 
 export const updateProfileSchema = z.object({
@@ -26,13 +26,13 @@ export const updateProfileSchema = z.object({
   lastName: z.string().min(1).max(50).optional(),
   bio: z.string().max(250).optional().nullable(),
   phone: z.string().max(20).optional().nullable(),
-  avatarUrl: z.string().url('Invalid avatar URL').optional().nullable(),
-  collegeId: z.string().uuid('Invalid college ID format').optional().nullable(),
+  avatarUrl: z.string().url('Please provide a valid image URL').optional().nullable(),
+  collegeId: z.string().uuid('Please select a valid campus').optional().nullable(),
 });
 
 export const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(4, 'New password must be at least 4 characters long'),
+  currentPassword: z.string().min(1, 'Please enter your current password'),
+  newPassword: z.string().min(4, 'New password must be at least 4 characters'),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

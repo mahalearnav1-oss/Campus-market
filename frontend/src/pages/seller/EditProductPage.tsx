@@ -36,7 +36,7 @@ export const EditProductPage: React.FC = () => {
           setImageUrl(p.images[0].imageUrl);
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load product details.');
+        setError(err.message || 'Couldn\'t load product details. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +76,7 @@ export const EditProductPage: React.FC = () => {
       queryClient.invalidateQueries();
       navigate('/seller/products');
     } catch (err: any) {
-      setError(err.message || 'Failed to update product listing.');
+      setError(err.message || 'Couldn\'t update product listing. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

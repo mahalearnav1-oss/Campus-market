@@ -28,7 +28,7 @@ apiClient.interceptors.response.use(
   (error) => {
     const customError = {
       code: error.response?.data?.error?.code || 'NETWORK_ERROR',
-      message: error.response?.data?.error?.message || 'Unable to connect to server',
+      message: error.response?.data?.error?.message || 'Couldn\'t connect to the server. Please check your connection.',
       details: error.response?.data?.error?.details || [],
     };
     return Promise.reject(customError);

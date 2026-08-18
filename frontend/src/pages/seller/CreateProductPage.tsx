@@ -84,7 +84,7 @@ export const CreateProductPage: React.FC = () => {
       queryClient.invalidateQueries();
       navigate('/seller/products');
     } catch (err: any) {
-      setError(err.message || 'Failed to create product listing.');
+      setError(err.message || 'Couldn\'t publish listing. Please check the details and try again.');
     } finally {
       setIsSubmitting(false);
     }

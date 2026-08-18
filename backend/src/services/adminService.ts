@@ -124,7 +124,7 @@ export class AdminService {
   async deleteCategory(adminUserId: string, categoryId: string, ipAddress?: string) {
     const count = await prisma.product.count({ where: { categoryId } });
     if (count > 0) {
-      const error: any = new Error(`Cannot delete category with ${count} active products.`);
+      const error: any = new Error(`Cannot delete this category while it has ${count} active product(s).`);
       error.statusCode = 400;
       error.code = 'CATEGORY_HAS_PRODUCTS';
       throw error;
@@ -183,7 +183,7 @@ export class AdminService {
   async updateCampus(adminUserId: string, campusId: string, input: UpdateCampusInput, ipAddress?: string) {
     const existing = await collegeRepository.findById(campusId);
     if (!existing) {
-      const error: any = new Error('Campus not found.');
+      const error: any = new Error('We couldn\'t find this campus.');
       error.statusCode = 404;
       error.code = 'CAMPUS_NOT_FOUND';
       throw error;
@@ -231,7 +231,7 @@ export class AdminService {
   async deleteCampus(adminUserId: string, campusId: string, ipAddress?: string) {
     const existing = await collegeRepository.findById(campusId);
     if (!existing) {
-      const error: any = new Error('Campus not found.');
+      const error: any = new Error('We couldn\'t find this campus.');
       error.statusCode = 404;
       error.code = 'CAMPUS_NOT_FOUND';
       throw error;
@@ -241,7 +241,7 @@ export class AdminService {
     const usage = await collegeRepository.countUsage(campusId);
     if (usage.userCount > 0 || usage.productCount > 0) {
       const error: any = new Error(
-        `Cannot delete campus "${existing.name}" because ${usage.userCount} user(s) and ${usage.productCount} product(s) are linked to it. Please reassign records first.`
+        `Cannot delete "${existing.name}" because ${usage.userCount} user(s) and ${usage.productCount} product(s) are linked to it. Please reassign records first.`
       );
       error.statusCode = 400;
       error.code = 'CAMPUS_IN_USE';

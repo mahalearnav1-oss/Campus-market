@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../lib/api/client';
 import { queryClient } from '../../lib/queryClient';
+import { formatINR } from '../../lib/formatters';
 
 export interface SellerProductItem {
   id: string;
@@ -32,7 +33,7 @@ export const SellerProductsPage: React.FC = () => {
       const res: any = await apiClient.get(`/products/seller/me?${queryParams.toString()}`);
       setProducts(res.data.products || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to load seller products.');
+      setError(err.message || 'Couldn\'t load your products. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -50,7 +51,7 @@ export const SellerProductsPage: React.FC = () => {
       setMessage('Product successfully published to marketplace!');
       fetchSellerProducts();
     } catch (err: any) {
-      setError(err.message || 'Failed to publish product.');
+      setError(err.message || 'Couldn\'t publish this product. Please try again.');
     }
   };
 
@@ -62,7 +63,7 @@ export const SellerProductsPage: React.FC = () => {
       setMessage('Product paused.');
       fetchSellerProducts();
     } catch (err: any) {
-      setError(err.message || 'Failed to pause product.');
+      setError(err.message || 'Couldn\'t pause this product. Please try again.');
     }
   };
 
@@ -75,7 +76,7 @@ export const SellerProductsPage: React.FC = () => {
       setMessage('Product listing archived.');
       fetchSellerProducts();
     } catch (err: any) {
-      setError(err.message || 'Failed to archive product.');
+      setError(err.message || 'Couldn\'t archive this product. Please try again.');
     }
   };
 
@@ -176,7 +177,7 @@ export const SellerProductsPage: React.FC = () => {
                       <td className="p-4 text-[#6E5948] font-medium">{p.category?.name || 'Uncategorized'}</td>
 
                       <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">
-                        ₹{Number(p.price).toLocaleString('en-IN')}
+                        {formatINR(p.price)}
                       </td>
 
                       <td className="p-4 font-semibold text-[#3B2A22]">{p.quantity}</td>

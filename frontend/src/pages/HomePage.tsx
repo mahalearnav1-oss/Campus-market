@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/client';
 import { ProductCard, ProductCardData } from '../components/ProductCard';
 import { useCampusStore } from '../stores/campusStore';
+import { formatINR } from '../lib/formatters';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -193,9 +194,9 @@ export const HomePage: React.FC = () => {
                       <div className="flex items-center justify-between pt-4 border-t border-[#D6C8B8]">
                         <div>
                           {activeHeroProduct.originalMsrp && Number(activeHeroProduct.originalMsrp) > Number(activeHeroProduct.price) && (
-                            <span className="text-xs text-[#8B7562] line-through mr-2">MSRP ₹{activeHeroProduct.originalMsrp}</span>
+                            <span className="text-xs text-[#8B7562] line-through mr-2">MSRP {formatINR(activeHeroProduct.originalMsrp)}</span>
                           )}
-                          <span className="font-heading text-2xl font-normal text-[#3B2A22]">₹{activeHeroProduct.price}</span>
+                          <span className="font-heading text-2xl font-normal text-[#3B2A22]">{formatINR(activeHeroProduct.price)}</span>
                         </div>
                         <Link to={`/products/${activeHeroProduct.id}`} className="btn-primary text-xs !py-2 !px-4">
                           View Item

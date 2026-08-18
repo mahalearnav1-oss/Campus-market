@@ -38,7 +38,7 @@ export const BecomeSellerPage: React.FC = () => {
       await fetchMe();
       navigate('/seller/products');
     } catch (err: any) {
-      setError(err.message || 'Failed to register seller profile.');
+      setError(err.message || 'Couldn\'t set up seller profile. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -11,7 +11,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         success: false,
         error: {
           code: 'UNAUTHORIZED',
-          message: 'Authentication token missing or invalid format.',
+          message: 'Please sign in to continue.',
         },
       });
     }
@@ -25,7 +25,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         success: false,
         error: {
           code: 'TOKEN_EXPIRED',
-          message: 'Access token has expired or is invalid.',
+          message: 'Your session has expired. Please sign in again.',
         },
       });
     }
@@ -41,7 +41,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         success: false,
         error: {
           code: 'UNAUTHORIZED',
-          message: 'Account associated with this session no longer exists.',
+          message: 'We couldn\'t find an account for this session. Please sign in again.',
         },
       });
     }
@@ -80,7 +80,7 @@ export function requireRole(...allowedRoles: UserRole[]) {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        error: { code: 'UNAUTHORIZED', message: 'Authentication required.' },
+        error: { code: 'UNAUTHORIZED', message: 'Please sign in to continue.' },
       });
     }
 
@@ -89,7 +89,7 @@ export function requireRole(...allowedRoles: UserRole[]) {
         success: false,
         error: {
           code: 'FORBIDDEN',
-          message: `Access denied. Requires one of the following roles: ${allowedRoles.join(', ')}`,
+          message: 'You don\'t have permission to perform this action.',
         },
       });
     }
@@ -104,7 +104,7 @@ export async function requireSeller(req: Request, res: Response, next: NextFunct
       success: false,
       error: {
         code: 'UNAUTHORIZED',
-        message: 'Authentication required.',
+        message: 'Please sign in to continue.',
       },
     });
   }

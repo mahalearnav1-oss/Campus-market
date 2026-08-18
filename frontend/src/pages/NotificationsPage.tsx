@@ -41,7 +41,7 @@ export const NotificationsPage: React.FC = () => {
       setNotifications(notifRes.data.notifications || []);
       setPreferences(prefRes.data.preferences || null);
     } catch (err: any) {
-      setError(err.message || 'Failed to load notifications.');
+      setError(err.message || 'Couldn\'t load notifications. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,7 @@ export const NotificationsPage: React.FC = () => {
       await apiClient.post('/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, readAt: new Date().toISOString() })));
     } catch (err: any) {
-      setError(err.message || 'Failed to mark all as read.');
+      setError(err.message || 'Couldn\'t update notifications. Please try again.');
     }
   };
 
@@ -82,7 +82,7 @@ export const NotificationsPage: React.FC = () => {
       await apiClient.delete(`/notifications/${id}`);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err: any) {
-      setError(err.message || 'Failed to delete notification.');
+      setError(err.message || 'Couldn\'t delete notification. Please try again.');
     }
   };
 
@@ -93,7 +93,7 @@ export const NotificationsPage: React.FC = () => {
     try {
       await apiClient.patch('/users/me/notification-preferences', { [key]: updated[key] });
     } catch (err: any) {
-      setError(err.message || 'Failed to update preference.');
+      setError(err.message || 'Couldn\'t update notification preferences. Please try again.');
     }
   };
 

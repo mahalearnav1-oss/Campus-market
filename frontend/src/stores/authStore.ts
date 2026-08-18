@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (err: any) {
       set({
-        error: err.message || 'Invalid login credentials.',
+        error: err.message || 'Email or password is incorrect.',
         isLoading: false,
         isAuthenticated: false,
       });
@@ -102,7 +102,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (err: any) {
       set({
-        error: err.message || 'Registration failed.',
+        error: err.message || 'Could not create account. Please check your information and try again.',
         isLoading: false,
         isAuthenticated: false,
       });

@@ -6,7 +6,7 @@ export function requireModerator(req: Request, res: Response, next: NextFunction
   if (!user) {
     return res.status(401).json({
       success: false,
-      error: { code: 'UNAUTHORIZED', message: 'Authentication required.' },
+      error: { code: 'UNAUTHORIZED', message: 'Please sign in to continue.' },
     });
   }
 
@@ -14,7 +14,7 @@ export function requireModerator(req: Request, res: Response, next: NextFunction
   if (!allowedRoles.includes(user.role as any)) {
     return res.status(403).json({
       success: false,
-      error: { code: 'FORBIDDEN', message: 'Moderator access level required.' },
+      error: { code: 'FORBIDDEN', message: 'You don\'t have permission to access moderation tools.' },
     });
   }
 
@@ -26,7 +26,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!user) {
     return res.status(401).json({
       success: false,
-      error: { code: 'UNAUTHORIZED', message: 'Authentication required.' },
+      error: { code: 'UNAUTHORIZED', message: 'Please sign in to continue.' },
     });
   }
 
@@ -34,7 +34,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   if (!allowedRoles.includes(user.role as any)) {
     return res.status(403).json({
       success: false,
-      error: { code: 'FORBIDDEN', message: 'Administrator access level required.' },
+      error: { code: 'FORBIDDEN', message: 'You don\'t have permission to access the administration dashboard.' },
     });
   }
 
@@ -46,14 +46,14 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
   if (!user) {
     return res.status(401).json({
       success: false,
-      error: { code: 'UNAUTHORIZED', message: 'Authentication required.' },
+      error: { code: 'UNAUTHORIZED', message: 'Please sign in to continue.' },
     });
   }
 
   if (user.role !== UserRole.SUPER_ADMIN) {
     return res.status(403).json({
       success: false,
-      error: { code: 'FORBIDDEN', message: 'Super Administrator access level required.' },
+      error: { code: 'FORBIDDEN', message: 'You don\'t have permission to perform this action.' },
     });
   }
 

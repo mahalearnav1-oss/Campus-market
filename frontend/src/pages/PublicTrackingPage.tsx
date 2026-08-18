@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiClient } from '../lib/api/client';
+import { formatINR } from '../lib/formatters';
 
 export const PublicTrackingPage: React.FC = () => {
   const [orderNumber, setOrderNumber] = useState('');
@@ -16,7 +17,7 @@ export const PublicTrackingPage: React.FC = () => {
       const res: any = await apiClient.get(`/orders/track/${orderNumber.trim()}`);
       setOrder(res.data.order);
     } catch (err: any) {
-      setError(err.message || 'Order tracking number not found.');
+      setError(err.message || 'We couldn\'t find tracking details for this order.');
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +64,7 @@ export const PublicTrackingPage: React.FC = () => {
 
           <div className="space-y-2 text-[#6E5948]">
             <p><strong>Campus Meetup Location:</strong> {order.shippingAddress?.campusBuilding || 'Campus Main Library'}</p>
-            <p><strong>Total Escrow Value:</strong> ₹{Number(order.totalAmount).toLocaleString('en-IN')}</p>
+            <p><strong>Total Escrow Value:</strong> {formatINR(order.totalAmount)}</p>
           </div>
         </div>
       )}

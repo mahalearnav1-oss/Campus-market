@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { queryClient } from '../lib/queryClient';
+import { formatINR } from '../lib/formatters';
 
 export interface WishlistItemData {
   id: string;
@@ -41,7 +42,7 @@ export const WishlistPage: React.FC = () => {
       const res: any = await apiClient.get('/wishlist');
       setWishlist(res.data.wishlist);
     } catch (err: any) {
-      setError(err.message || 'Failed to load wishlist items.');
+      setError(err.message || 'Couldn\'t load your wishlist. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +59,7 @@ export const WishlistPage: React.FC = () => {
       setWishlist(res.data.wishlist);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setError(err.message || 'Failed to remove wishlist item.');
+      setError(err.message || 'Couldn\'t remove item from wishlist. Please try again.');
     } finally {
       setActionItemId(null);
     }
@@ -71,7 +72,7 @@ export const WishlistPage: React.FC = () => {
       setWishlist(res.data.wishlist);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setError(err.message || 'Failed to move item to cart.');
+      setError(err.message || 'Couldn\'t move item to cart. Please try again.');
     } finally {
       setActionItemId(null);
     }
@@ -171,7 +172,7 @@ export const WishlistPage: React.FC = () => {
                     )}
 
                     <div className="font-heading text-2xl font-normal text-[#3B2A22]">
-                      ₹{Number(product.price).toLocaleString('en-IN')}
+                      {formatINR(product.price)}
                     </div>
                   </div>
                 </div>

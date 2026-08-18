@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../lib/api/client';
 import { Link } from 'react-router-dom';
+import { formatINR } from '../lib/formatters';
 
 export interface SellerDashboardData {
   id: string;
@@ -130,7 +131,7 @@ export const SellerDashboardPage: React.FC = () => {
             Cleared Balance
           </span>
           <p className="font-heading text-4xl font-normal text-[#3B2A22]">
-            ₹{cleared.toLocaleString('en-IN')}
+            {formatINR(cleared)}
           </p>
           <span className="font-sans text-[11px] text-[#6E8A62] font-semibold mt-2 block">
             Ready for Payout
@@ -142,7 +143,7 @@ export const SellerDashboardPage: React.FC = () => {
             Pending Escrow
           </span>
           <p className="font-heading text-4xl font-normal text-[#3B2A22]">
-            ₹{pending.toLocaleString('en-IN')}
+            {formatINR(pending)}
           </p>
           <span className="font-sans text-[11px] text-[#C8A46A] font-semibold mt-2 block">
             Held in Campus Escrow

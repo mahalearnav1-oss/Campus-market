@@ -4,6 +4,7 @@ import { apiClient } from '../lib/api/client';
 import { queryClient } from '../lib/queryClient';
 import { RatingStars } from '../components/reviews/RatingStars';
 import { useAuthStore } from '../stores/authStore';
+import { formatINR } from '../lib/formatters';
 
 export interface DetailedProduct {
   id: string;
@@ -75,7 +76,7 @@ export const ProductDetailPage: React.FC = () => {
           setSelectedImage(primary.imageUrl);
         }
       } catch (err: any) {
-        setPageError(err.message || 'Failed to load product details.');
+        setPageError(err.message || 'We couldn\'t find or load this product. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -93,7 +94,7 @@ export const ProductDetailPage: React.FC = () => {
       queryClient.invalidateQueries();
       setActionSuccess(`Successfully added ${purchaseQty} unit(s) of "${product.title}" to your cart!`);
     } catch (err: any) {
-      setActionError(err.message || 'Failed to add item to cart.');
+      setActionError(err.message || 'Couldn\'t add item to cart. Please try again.');
     } finally {
       setIsAddingCart(false);
     }
@@ -109,7 +110,7 @@ export const ProductDetailPage: React.FC = () => {
       queryClient.invalidateQueries();
       setActionSuccess(`Saved "${product.title}" to your wishlist!`);
     } catch (err: any) {
-      setActionError(err.message || 'Failed to save to wishlist.');
+      setActionError(err.message || 'Couldn\'t save to wishlist. Please try again.');
     } finally {
       setIsSavingWishlist(false);
     }
@@ -140,9 +141,9 @@ export const ProductDetailPage: React.FC = () => {
       }
     } catch (err: any) {
       if (err.code === 'SELF_MESSAGING_NOT_ALLOWED') {
-        setActionError('You cannot start a conversation with yourself on your own product listing.');
+        setActionError('You cannot message yourself on your own product listing.');
       } else {
-        setActionError(err.message || 'Failed to start conversation with seller.');
+        setActionError(err.message || 'Couldn\'t open chat with seller. Please try again.');
       }
     } finally {
       setIsStartingChat(false);
@@ -274,11 +275,11 @@ export const ProductDetailPage: React.FC = () => {
 
             <div className="flex items-baseline gap-3 pt-2">
               <span className="font-heading text-4xl font-normal text-[#3B2A22]">
-                ₹{Number(product.price).toLocaleString('en-IN')}
+                {formatINR(product.price)}
               </span>
               {product.originalMsrp && Number(product.originalMsrp) > Number(product.price) && (
                 <span className="font-sans text-sm text-[#8B7562] line-through">
-                  ₹{Number(product.originalMsrp).toLocaleString('en-IN')} MSRP
+                  {formatINR(product.originalMsrp)} MSRP
                 </span>
               )}
               <span className={`font-sans text-xs font-semibold ml-auto ${isAvailable ? 'text-[#6E8A62]' : 'text-[#9B5C52]'}`}>

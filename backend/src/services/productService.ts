@@ -9,7 +9,7 @@ export class ProductService {
   async createProduct(userId: string, sellerId: string, collegeId: string | null, input: CreateProductInput, ipAddress?: string) {
     const seller = await sellerRepository.findById(sellerId);
     if (!seller || seller.status === SellerStatus.SUSPENDED) {
-      const error: any = new Error('Your seller account must be active to create product listings.');
+      const error: any = new Error('Your seller account must be active to list products.');
       error.statusCode = 403;
       error.code = 'SELLER_NOT_ACTIVE';
       throw error;
@@ -98,7 +98,7 @@ export class ProductService {
   async getProductDetail(productId: string, requestingUserId?: string) {
     const product = await productRepository.findById(productId);
     if (!product || product.deletedAt) {
-      const error: any = new Error('Product listing not found.');
+      const error: any = new Error('We couldn\'t find this product listing.');
       error.statusCode = 404;
       error.code = 'PRODUCT_NOT_FOUND';
       throw error;
@@ -106,7 +106,7 @@ export class ProductService {
 
     if (product.status !== ProductStatus.ACTIVE) {
       if (!requestingUserId || product.seller.id !== (await sellerRepository.findByUserId(requestingUserId))?.id) {
-        const error: any = new Error('Product listing is not publicly active.');
+        const error: any = new Error('This product listing is no longer available.');
         error.statusCode = 404;
         error.code = 'PRODUCT_NOT_FOUND';
         throw error;
@@ -123,14 +123,14 @@ export class ProductService {
   async updateProduct(userId: string, sellerId: string, productId: string, input: UpdateProductInput, ipAddress?: string) {
     const product = await productRepository.findById(productId);
     if (!product || product.deletedAt) {
-      const error: any = new Error('Product listing not found.');
+      const error: any = new Error('We couldn\'t find this product listing.');
       error.statusCode = 404;
       error.code = 'PRODUCT_NOT_FOUND';
       throw error;
     }
 
     if (product.sellerId !== sellerId) {
-      const error: any = new Error('You are not authorized to modify another seller listing.');
+      const error: any = new Error('You don\'t have permission to modify this listing.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;

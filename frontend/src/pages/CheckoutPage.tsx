@@ -5,6 +5,7 @@ import { queryClient } from '../lib/queryClient';
 import { loadRazorpayScript } from '../lib/razorpay';
 import { useAuthStore } from '../stores/authStore';
 import { CartData } from './CartPage';
+import { formatINR } from '../lib/formatters';
 
 export const CheckoutPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export const CheckoutPage: React.FC = () => {
           navigate('/cart');
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load cart for checkout.');
+        setError(err.message || 'Couldn\'t load your cart for checkout. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -110,7 +111,7 @@ export const CheckoutPage: React.FC = () => {
                 queryClient.invalidateQueries();
                 navigate(`/orders/${orderNumber}/tracking`);
               } catch (err: any) {
-                setError(err.message || 'Payment verification failed.');
+                setError(err.message || 'Payment verification could not be completed. Please contact support.');
               }
             },
             prefill: {
@@ -135,7 +136,7 @@ export const CheckoutPage: React.FC = () => {
         navigate(`/orders/${orderNumber}/tracking`);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to complete escrow order payment.');
+      setError(err.message || 'We couldn\'t complete your order. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -309,7 +310,7 @@ export const CheckoutPage: React.FC = () => {
                       <span className="text-[10px] text-[#8B7562]">Qty: {i.quantity}</span>
                     </div>
                     <span className="font-heading text-base font-normal text-[#3B2A22]">
-                      ₹{Number(i.lineTotal).toLocaleString('en-IN')}
+                      {formatINR(i.lineTotal)}
                     </span>
                   </div>
                 ))}
@@ -319,7 +320,7 @@ export const CheckoutPage: React.FC = () => {
                 <div className="flex justify-between items-baseline">
                   <span className="font-heading text-xl text-[#3B2A22]">Total Payable</span>
                   <span className="font-heading text-3xl font-normal text-[#3B2A22]">
-                    ₹{Number(cart.subtotal).toLocaleString('en-IN')}
+                    {formatINR(cart.subtotal)}
                   </span>
                 </div>
               </div>

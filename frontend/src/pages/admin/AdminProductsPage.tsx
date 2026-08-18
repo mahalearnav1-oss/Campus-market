@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../lib/api/client';
 import { Link } from 'react-router-dom';
+import { formatINR } from '../../lib/formatters';
 
 export interface AdminProductItem {
   id: string;
@@ -71,7 +72,7 @@ export const AdminProductsPage: React.FC = () => {
                       <Link to={`/products/${p.id}`} className="hover:text-[#8B6A4F] transition-colors">{p.title}</Link>
                     </td>
                     <td className="p-4 text-[#6E5948] font-medium">{p.seller?.storeName || 'Unknown Store'}</td>
-                    <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">₹{Number(p.price).toLocaleString('en-IN')}</td>
+                    <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">{formatINR(p.price)}</td>
                     <td className="p-4 font-semibold text-[#3B2A22]">{p.conditionGrade}</td>
                     <td className="p-4">
                       <span className="px-2.5 py-1 rounded-full bg-[#6E8A62]/15 text-[#6E8A62] text-[10px] font-bold uppercase">

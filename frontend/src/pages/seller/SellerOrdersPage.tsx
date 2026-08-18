@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../lib/api/client';
 import { Link } from 'react-router-dom';
+import { formatINR } from '../../lib/formatters';
 
 export const SellerOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -66,7 +67,7 @@ export const SellerOrdersPage: React.FC = () => {
                   <tr key={o.id} className="hover:bg-[#E7DED1]/50 transition-colors">
                     <td className="p-4 pl-6 font-heading text-xl font-normal text-[#3B2A22]">#{o.orderNumber}</td>
                     <td className="p-4 text-[#6E5948] font-medium">{o.buyer?.firstName} {o.buyer?.lastName}</td>
-                    <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">₹{Number(o.totalAmount).toLocaleString('en-IN')}</td>
+                    <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">{formatINR(o.totalAmount)}</td>
                     <td className="p-4">
                       <span className="px-2.5 py-1 rounded-full bg-[#6E8A62]/15 text-[#6E8A62] text-[10px] font-bold uppercase">
                         {o.status}

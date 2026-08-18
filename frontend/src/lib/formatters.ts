@@ -1,5 +1,25 @@
 // Human-Readable Label Formatters for Frontend UI Presentation
 
+/**
+ * Standardized Indian Rupee (INR) Currency Formatter
+ * Formats numbers into Indian numbering system (e.g. ₹500, ₹1,500, ₹1,50,000, ₹500.50)
+ */
+export function formatINR(amount?: number | string | null): string {
+  if (amount === undefined || amount === null || amount === '') return '₹0';
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '₹0';
+
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+    minimumFractionDigits: num % 1 !== 0 ? 2 : 0,
+  }).format(num);
+}
+
+export const formatCurrency = formatINR;
+export const formatPrice = formatINR;
+
 export function formatUserRole(role?: string | null): string {
   switch (role) {
     case 'STUDENT_BUYER':

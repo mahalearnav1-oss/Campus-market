@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
+import { formatINR } from '../lib/formatters';
 
 export interface OrderItemSummary {
   id: string;
@@ -29,7 +30,7 @@ export const BuyerOrdersPage: React.FC = () => {
         setTotalPages(res.data.pagination?.totalPages || 1);
         setTotalOrders(res.data.pagination?.total || 0);
       } catch (err: any) {
-        setError(err.message || 'Failed to load order history.');
+        setError(err.message || 'Couldn\'t load your orders. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -106,7 +107,7 @@ export const BuyerOrdersPage: React.FC = () => {
                 <div className="flex items-center gap-4 text-xs font-sans text-[#8B7562]">
                   <span>{new Date(ord.createdAt).toLocaleDateString('en-IN')}</span>
                   <span className="font-heading text-2xl font-normal text-[#3B2A22]">
-                    ₹{Number(ord.totalAmount).toLocaleString('en-IN')}
+                    {formatINR(ord.totalAmount)}
                   </span>
                 </div>
               </div>

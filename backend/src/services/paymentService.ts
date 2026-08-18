@@ -12,14 +12,14 @@ export class PaymentService {
     const order = await orderRepository.findOrderByNumber(input.orderNumber);
 
     if (!order) {
-      const error: any = new Error('Order not found.');
+      const error: any = new Error('We couldn\'t find this order.');
       error.statusCode = 404;
       error.code = 'ORDER_NOT_FOUND';
       throw error;
     }
 
     if (order.buyerId !== userId) {
-      const error: any = new Error('You are not authorized to create payment for this order.');
+      const error: any = new Error('You don\'t have permission to make a payment for this order.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
@@ -33,7 +33,7 @@ export class PaymentService {
     }
 
     if (order.status === OrderStatus.CANCELLED) {
-      const error: any = new Error('Cannot create payment for a cancelled order.');
+      const error: any = new Error('This order was cancelled and cannot be paid.');
       error.statusCode = 400;
       error.code = 'ORDER_CANCELLED';
       throw error;
@@ -76,14 +76,14 @@ export class PaymentService {
     const payment = await paymentRepository.findPaymentByRazorpayOrderId(input.razorpay_order_id);
 
     if (!payment) {
-      const error: any = new Error('Payment record not found for this Razorpay order.');
+      const error: any = new Error('We couldn\'t find a payment record for this order.');
       error.statusCode = 404;
       error.code = 'PAYMENT_NOT_FOUND';
       throw error;
     }
 
     if (payment.order.buyerId !== userId) {
-      const error: any = new Error('You are not authorized to verify payment for this order.');
+      const error: any = new Error('You don\'t have permission to verify payment for this order.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
@@ -119,7 +119,7 @@ export class PaymentService {
         rawPayload: JSON.stringify(input),
       });
 
-      const error: any = new Error('Invalid Razorpay payment signature verification failed.');
+      const error: any = new Error('Payment verification could not be completed. Please contact support.');
       error.statusCode = 400;
       error.code = 'INVALID_SIGNATURE';
       throw error;

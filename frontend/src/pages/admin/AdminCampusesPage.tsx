@@ -64,7 +64,7 @@ export const AdminCampusesPage: React.FC = () => {
       const res: any = await apiClient.get('/admin/campuses');
       setCampuses(res.data.campuses || []);
     } catch (err: any) {
-      setError(err.message || 'Failed to load campuses.');
+      setError(err.message || 'Couldn\'t load campuses list. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -169,7 +169,7 @@ export const AdminCampusesPage: React.FC = () => {
     } catch (err: any) {
       setModalFeedback({
         type: 'error',
-        message: err.message || 'Failed to create campus. Please verify your input.',
+        message: err.message || 'Couldn\'t create campus. Please check the details and try again.',
       });
     } finally {
       setIsSubmitting(false);
@@ -200,7 +200,7 @@ export const AdminCampusesPage: React.FC = () => {
     } catch (err: any) {
       setModalFeedback({
         type: 'error',
-        message: err.message || 'Failed to update campus.',
+        message: err.message || 'Couldn\'t update campus. Please try again.',
       });
     } finally {
       setIsSubmitting(false);

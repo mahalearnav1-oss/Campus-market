@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { useAuthStore } from '../stores/authStore';
+import { formatINR } from '../lib/formatters';
 
 export interface ConversationSummary {
   id: string;
@@ -48,7 +49,7 @@ export const ConversationsPage: React.FC = () => {
           if (err.code === 'SELF_MESSAGING_NOT_ALLOWED') {
             setError('You cannot start a conversation with yourself.');
           } else {
-            setError(err.message || 'Failed to initialize conversation.');
+            setError(err.message || 'Couldn\'t start conversation. Please try again.');
           }
         } finally {
           setIsInitializing(false);
@@ -66,7 +67,7 @@ export const ConversationsPage: React.FC = () => {
       setConversations(res.data.conversations || []);
     } catch (err: any) {
       if (!silent) {
-        setError(err.message || 'Failed to load conversations.');
+        setError(err.message || 'Couldn\'t load your messages. Please try again.');
       }
     } finally {
       if (!silent) setIsLoading(false);
@@ -203,7 +204,7 @@ export const ConversationsPage: React.FC = () => {
 
                   {conv.product && (
                     <p className="text-xs font-sans font-medium text-[#C8A46A] truncate mb-1">
-                      Item: {conv.product.title} (₹{Number(conv.product.price).toLocaleString('en-IN')})
+                      Item: {conv.product.title} ({formatINR(conv.product.price)})
                     </p>
                   )}
 

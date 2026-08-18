@@ -55,7 +55,7 @@ export class EmailService {
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
           <h2>Order Confirmed!</h2>
-          <p>Hi ${recipientName}, your order <strong>#${orderNumber}</strong> for <strong>$${totalAmount}</strong> has been created and notified to the seller.</p>
+          <p>Hi ${recipientName}, your order <strong>#${orderNumber}</strong> for <strong>₹${Number(totalAmount).toLocaleString('en-IN')}</strong> has been created and notified to the seller.</p>
         </div>
       `,
     };
@@ -67,7 +67,7 @@ export class EmailService {
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
           <h2>Payment Successful</h2>
-          <p>Hi ${recipientName}, your payment of <strong>$${amount}</strong> (Ref: ${paymentId}) for order #${orderNumber} was processed successfully.</p>
+          <p>Hi ${recipientName}, your payment of <strong>₹${Number(amount).toLocaleString('en-IN')}</strong> (Ref: ${paymentId}) for order #${orderNumber} was processed successfully.</p>
         </div>
       `,
     };

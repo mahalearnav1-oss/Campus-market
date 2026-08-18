@@ -21,13 +21,13 @@ export class CartService {
 
       if (!product || product.deletedAt || product.status !== ProductStatus.ACTIVE) {
         isAvailable = false;
-        availabilityWarning = 'This item is no longer active or available on the marketplace.';
+        availabilityWarning = 'This item is no longer available.';
       } else if (product.quantity <= 0) {
         isAvailable = false;
         availabilityWarning = 'This item is currently out of stock.';
       } else if (item.quantity > product.quantity) {
         isAvailable = false;
-        availabilityWarning = `Only ${product.quantity} unit(s) are currently available in stock.`;
+        availabilityWarning = `Only ${product.quantity} unit(s) available in stock.`;
       }
 
       if (isAvailable) {
@@ -73,7 +73,7 @@ export class CartService {
     const product = await productRepository.findById(input.productId);
 
     if (!product || product.deletedAt || product.status !== ProductStatus.ACTIVE) {
-      const error: any = new Error('This product is not active or available for purchase.');
+      const error: any = new Error('This product is no longer available.');
       error.statusCode = 400;
       error.code = 'INACTIVE_PRODUCT';
       throw error;
@@ -91,7 +91,7 @@ export class CartService {
     const newRequestedQuantity = (existingItem?.quantity || 0) + input.quantity;
 
     if (newRequestedQuantity > product.quantity) {
-      const error: any = new Error(`Cannot add ${input.quantity} unit(s). Total requested (${newRequestedQuantity}) exceeds available stock (${product.quantity}).`);
+      const error: any = new Error(`Only ${product.quantity} unit(s) available in stock.`);
       error.statusCode = 400;
       error.code = 'INSUFFICIENT_STOCK';
       throw error;
@@ -105,7 +105,7 @@ export class CartService {
     const cartItem = await cartRepository.findCartItemById(cartItemId);
 
     if (!cartItem) {
-      const error: any = new Error('Cart item not found.');
+      const error: any = new Error('We couldn\'t find this item in your cart.');
       error.statusCode = 404;
       error.code = 'ITEM_NOT_FOUND';
       throw error;
@@ -113,14 +113,14 @@ export class CartService {
 
     // Security Ownership Check: User A cannot modify User B's cart item
     if (cartItem.cart.userId !== userId) {
-      const error: any = new Error('You are not authorized to modify this cart item.');
+      const error: any = new Error('You don\'t have permission to modify this cart item.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
     }
 
     if (input.quantity > cartItem.product.quantity) {
-      const error: any = new Error(`Requested quantity (${input.quantity}) exceeds available stock (${cartItem.product.quantity}).`);
+      const error: any = new Error(`Only ${cartItem.product.quantity} unit(s) available in stock.`);
       error.statusCode = 400;
       error.code = 'INSUFFICIENT_STOCK';
       throw error;
@@ -134,7 +134,7 @@ export class CartService {
     const cartItem = await cartRepository.findCartItemById(cartItemId);
 
     if (!cartItem) {
-      const error: any = new Error('Cart item not found.');
+      const error: any = new Error('We couldn\'t find this item in your cart.');
       error.statusCode = 404;
       error.code = 'ITEM_NOT_FOUND';
       throw error;

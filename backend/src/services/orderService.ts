@@ -11,7 +11,7 @@ export class OrderService {
     const cart = await cartRepository.getOrCreateCart(userId);
 
     if (cart.items.length === 0) {
-      const error: any = new Error('Your cart is empty. Add products before proceeding to checkout.');
+      const error: any = new Error('Your cart is empty.');
       error.statusCode = 400;
       error.code = 'EMPTY_CART';
       throw error;
@@ -37,11 +37,11 @@ export class OrderService {
 
       if (!product || product.deletedAt || product.status !== ProductStatus.ACTIVE) {
         isAvailable = false;
-        issueWarning = 'Product is no longer active on the marketplace.';
+        issueWarning = 'This item is no longer available.';
         hasAvailabilityIssues = true;
       } else if (product.quantity < item.quantity) {
         isAvailable = false;
-        issueWarning = `Insufficient stock (Available: ${product.quantity}, Cart: ${item.quantity}).`;
+        issueWarning = `Only ${product.quantity} unit(s) available in stock.`;
         hasAvailabilityIssues = true;
       }
 
@@ -80,7 +80,7 @@ export class OrderService {
     const preview = await this.getCheckoutPreview(userId);
 
     if (preview.hasAvailabilityIssues) {
-      const error: any = new Error('Some items in your cart are no longer available or out of stock. Please review your cart.');
+      const error: any = new Error('Some items in your cart are no longer available. Please review your cart.');
       error.statusCode = 400;
       error.code = 'CHECKOUT_VALIDATION_FAILED';
       throw error;
@@ -92,7 +92,7 @@ export class OrderService {
     });
 
     if (!address || address.userId !== userId) {
-      const error: any = new Error('Invalid shipping address selected.');
+      const error: any = new Error('Please select a valid delivery address.');
       error.statusCode = 400;
       error.code = 'INVALID_ADDRESS';
       throw error;
@@ -144,7 +144,7 @@ export class OrderService {
         userId: seller.userId,
         type: NotificationType.ORDER_CREATED,
         title: `🛒 New Order #${order.orderNumber}`,
-        body: `You have received a new order for $${order.totalAmount.toFixed(2)}. Prepare shipment now.`,
+        body: `You have received a new order for ₹${Number(order.totalAmount).toLocaleString('en-IN')}. Prepare shipment now.`,
         data: { orderNumber: order.orderNumber, orderId: order.id },
         actionUrl: `/seller/orders`,
       });
@@ -154,7 +154,7 @@ export class OrderService {
       userId,
       type: NotificationType.ORDER_CREATED,
       title: `📦 Order Confirmed #${order.orderNumber}`,
-      body: `Your order for $${order.totalAmount.toFixed(2)} has been placed successfully.`,
+      body: `Your order for ₹${Number(order.totalAmount).toLocaleString('en-IN')} has been placed successfully.`,
       data: { orderNumber: order.orderNumber, orderId: order.id },
       actionUrl: `/orders/${order.orderNumber}`,
     });
@@ -170,7 +170,7 @@ export class OrderService {
     const order = await orderRepository.findOrderByNumber(orderNumber);
 
     if (!order) {
-      const error: any = new Error('Order not found.');
+      const error: any = new Error('We couldn\'t find this order.');
       error.statusCode = 404;
       error.code = 'ORDER_NOT_FOUND';
       throw error;
@@ -182,7 +182,7 @@ export class OrderService {
     const isSeller = userSeller ? order.items.some((i) => i.sellerId === userSeller.id) : false;
 
     if (!isBuyer && !isSeller) {
-      const error: any = new Error('You are not authorized to view this order.');
+      const error: any = new Error('You don\'t have permission to view this order.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
@@ -226,14 +226,14 @@ export class OrderService {
     const order = await orderRepository.findOrderByNumber(orderNumber);
 
     if (!order) {
-      const error: any = new Error('Order not found.');
+      const error: any = new Error('We couldn\'t find this order.');
       error.statusCode = 404;
       error.code = 'ORDER_NOT_FOUND';
       throw error;
     }
 
     if (order.buyerId !== userId) {
-      const error: any = new Error('You are not authorized to cancel this order.');
+      const error: any = new Error('You don\'t have permission to cancel this order.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
@@ -241,7 +241,7 @@ export class OrderService {
 
     // Eligible Status Check
     if (order.status !== OrderStatus.PAYMENT_PENDING && order.status !== OrderStatus.SELLER_ACCEPTED) {
-      const error: any = new Error(`Order in status "${order.status}" cannot be cancelled.`);
+      const error: any = new Error('This order can no longer be cancelled.');
       error.statusCode = 400;
       error.code = 'CANCEL_NOT_ALLOWED';
       throw error;
@@ -263,7 +263,7 @@ export class OrderService {
     });
 
     if (!orderItem || orderItem.sellerId !== sellerId) {
-      const error: any = new Error('Order item not found or unauthorized.');
+      const error: any = new Error('We couldn\'t find this order item or you don\'t have permission to modify it.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
@@ -281,7 +281,7 @@ export class OrderService {
     const allowed = allowedTransitions[currentStatus] || [];
 
     if (!allowed.includes(input.status)) {
-      const error: any = new Error(`Invalid status transition from "${currentStatus}" to "${input.status}".`);
+      const error: any = new Error('This order cannot be updated to the requested status.');
       error.statusCode = 400;
       error.code = 'INVALID_STATUS_TRANSITION';
       throw error;

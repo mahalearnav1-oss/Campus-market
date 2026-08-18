@@ -13,7 +13,7 @@ export class MessageService {
     });
 
     if (!seller) {
-      const error: any = new Error('Seller not found.');
+      const error: any = new Error('We couldn\'t find this seller.');
       error.statusCode = 404;
       error.code = 'SELLER_NOT_FOUND';
       throw error;
@@ -50,7 +50,7 @@ export class MessageService {
     });
 
     if (!conversation) {
-      const error: any = new Error('Conversation not found.');
+      const error: any = new Error('We couldn\'t find this conversation.');
       error.statusCode = 404;
       error.code = 'CONVERSATION_NOT_FOUND';
       throw error;
@@ -62,7 +62,7 @@ export class MessageService {
     const isSeller = userSeller ? conversation.sellerId === userSeller.id : false;
 
     if (!isBuyer && !isSeller) {
-      const error: any = new Error('You are not authorized to participate in this conversation.');
+      const error: any = new Error('You don\'t have permission to participate in this chat.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;
@@ -101,7 +101,7 @@ export class MessageService {
     const conversation = await messageRepository.findConversationById(conversationId);
 
     if (!conversation) {
-      const error: any = new Error('Conversation not found.');
+      const error: any = new Error('We couldn\'t find this conversation.');
       error.statusCode = 404;
       error.code = 'CONVERSATION_NOT_FOUND';
       throw error;
@@ -112,7 +112,7 @@ export class MessageService {
     const isSeller = userSeller ? conversation.sellerId === userSeller.id : false;
 
     if (!isBuyer && !isSeller) {
-      const error: any = new Error('You are not authorized to view this conversation.');
+      const error: any = new Error('You don\'t have permission to view this conversation.');
       error.statusCode = 403;
       error.code = 'FORBIDDEN';
       throw error;

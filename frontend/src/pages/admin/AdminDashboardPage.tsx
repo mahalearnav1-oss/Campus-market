@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../lib/api/client';
+import { formatINR } from '../../lib/formatters';
 
 export interface DashboardMetrics {
   totalUsers: number;
@@ -87,7 +88,7 @@ export const AdminDashboardPage: React.FC = () => {
 
         <div className="bg-[#E7DED1] border border-[#D6C8B8] p-6 rounded-[28px] space-y-2 shadow-warm-subtle">
           <span className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block">Total Escrow GMV</span>
-          <span className="font-heading text-4xl font-normal text-[#3B2A22]">₹{Number(metrics.totalRevenue || 0).toLocaleString('en-IN')}</span>
+          <span className="font-heading text-4xl font-normal text-[#3B2A22]">{formatINR(metrics.totalRevenue || 0)}</span>
           <span className="font-sans text-[11px] text-[#6E8A62] block font-semibold">{metrics.totalOrders} total completed orders</span>
         </div>
       </div>

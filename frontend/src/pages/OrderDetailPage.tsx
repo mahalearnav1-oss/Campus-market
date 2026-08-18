@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { RatingStars } from '../components/reviews/RatingStars';
 import { ReviewModal, ExistingReviewData } from '../components/reviews/ReviewModal';
+import { formatINR } from '../lib/formatters';
 
 export const OrderDetailPage: React.FC = () => {
   const { orderNumber } = useParams<{ orderNumber: string }>();
@@ -34,7 +35,7 @@ export const OrderDetailPage: React.FC = () => {
       const res: any = await apiClient.get(`/orders/${orderNumber}`);
       setOrder(res.data.order);
     } catch (err: any) {
-      setError(err.message || 'Failed to load order details.');
+      setError(err.message || 'Couldn\'t load order details. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +180,7 @@ export const OrderDetailPage: React.FC = () => {
                 </div>
 
                 <span className="font-heading text-2xl font-normal text-[#3B2A22] self-start sm:self-center">
-                  ₹{Number(item.lineTotal || item.snapshotPrice || item.snapshotUnitPrice).toLocaleString('en-IN')}
+                  {formatINR(item.lineTotal || item.snapshotPrice || item.snapshotUnitPrice)}
                 </span>
               </div>
             );
@@ -189,7 +190,7 @@ export const OrderDetailPage: React.FC = () => {
         <div className="pt-6 border-t border-[#D6C8B8] flex justify-between items-baseline font-sans text-xs">
           <span className="font-heading text-xl text-[#3B2A22]">Total Order Amount</span>
           <span className="font-heading text-4xl font-normal text-[#3B2A22]">
-            ₹{Number(order.totalAmount).toLocaleString('en-IN')}
+            {formatINR(order.totalAmount)}
           </span>
         </div>
       </div>

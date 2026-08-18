@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { queryClient } from '../lib/queryClient';
+import { formatINR } from '../lib/formatters';
 
 export interface CartItemData {
   id: string;
@@ -47,7 +48,7 @@ export const CartPage: React.FC = () => {
       const res: any = await apiClient.get('/cart');
       setCart(res.data.cart);
     } catch (err: any) {
-      setError(err.message || 'Failed to load shopping cart.');
+      setError(err.message || 'Couldn\'t load your cart. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +66,7 @@ export const CartPage: React.FC = () => {
       setCart(res.data.cart);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setError(err.message || 'Failed to update item quantity.');
+      setError(err.message || 'Your cart couldn\'t be updated. Please try again.');
     } finally {
       setUpdatingItemId(null);
     }
@@ -78,7 +79,7 @@ export const CartPage: React.FC = () => {
       setCart(res.data.cart);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setError(err.message || 'Failed to remove item.');
+      setError(err.message || 'Couldn\'t remove item from cart. Please try again.');
     } finally {
       setUpdatingItemId(null);
     }
@@ -92,7 +93,7 @@ export const CartPage: React.FC = () => {
       setCart(res.data.cart);
       queryClient.invalidateQueries();
     } catch (err: any) {
-      setError(err.message || 'Failed to clear cart.');
+      setError(err.message || 'Couldn\'t clear your cart. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -176,7 +177,7 @@ export const CartPage: React.FC = () => {
                       </Link>
                       <p className="font-sans text-xs text-[#8B7562] mt-0.5">Grade: {product.conditionGrade}</p>
                       <span className="font-heading text-xl font-normal text-[#3B2A22] mt-1 block">
-                        ₹{Number(item.unitPrice).toLocaleString('en-IN')}
+                        {formatINR(item.unitPrice)}
                       </span>
                     </div>
                   </div>
@@ -222,7 +223,7 @@ export const CartPage: React.FC = () => {
               <div className="space-y-3 font-sans text-xs">
                 <div className="flex justify-between text-[#6E5948]">
                   <span>Items ({cart.totalItemCount})</span>
-                  <span>₹{Number(cart.subtotal).toLocaleString('en-IN')}</span>
+                  <span>{formatINR(cart.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-[#6E5948]">
                   <span>Campus Meetup Shipping</span>
@@ -236,7 +237,7 @@ export const CartPage: React.FC = () => {
                 <div className="pt-4 border-t border-[#D6C8B8] flex justify-between items-baseline">
                   <span className="font-heading text-xl text-[#3B2A22]">Total Amount</span>
                   <span className="font-heading text-3xl font-normal text-[#3B2A22]">
-                    ₹{Number(cart.subtotal).toLocaleString('en-IN')}
+                    {formatINR(cart.subtotal)}
                   </span>
                 </div>
               </div>
