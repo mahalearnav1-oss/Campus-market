@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { useAuthStore } from '../stores/authStore';
@@ -35,7 +35,7 @@ export const ChatThreadPage: React.FC = () => {
   const [reportingMessageId, setReportingMessageId] = useState<string | null>(null);
   const [reportReason, setReportReason] = useState('');
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+
 
   const fetchThread = async (silent = false) => {
     if (!conversationId) return;
@@ -65,10 +65,6 @@ export const ChatThreadPage: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [conversationId]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [thread?.messages?.length]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -255,7 +251,6 @@ export const ChatThreadPage: React.FC = () => {
               );
             })
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Message Error */}
