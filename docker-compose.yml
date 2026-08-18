@@ -5,7 +5,7 @@ services:
     image: mysql:8.0
     container_name: campusmarket_mysql
     environment:
-      MYSQL_ROOT_PASSWORD: arnav
+      MYSQL_ROOT_PASSWORD: YOUR_SQL_PASSWORD
       MYSQL_DATABASE: campusmarket
     ports:
       - "3306:3306"
@@ -27,7 +27,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: mysql://root:arnav@mysql:3306/campusmarket
+      DATABASE_URL: mysql://root:root@mysql:3306/campusmarket
       JWT_SECRET: super_secret_jwt_key_campusmarket_2026
       REFRESH_TOKEN_SECRET: super_secret_refresh_key_campusmarket_2026
       RAZORPAY_KEY_ID: rzp_test_campusmarket2026
