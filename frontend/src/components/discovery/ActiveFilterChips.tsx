@@ -11,6 +11,8 @@ interface ActiveFilterChipsProps {
   onRemovePrice: () => void;
   onRemoveCondition: (cond: string) => void;
   onRemoveSellerType: () => void;
+  onRemoveBranch?: () => void;
+  onRemoveSemester?: () => void;
   onClearAll: () => void;
 }
 
@@ -36,12 +38,20 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
   onRemovePrice,
   onRemoveCondition,
   onRemoveSellerType,
+  onRemoveBranch,
+  onRemoveSemester,
   onClearAll,
 }) => {
   const categoryName = categories.find((c) => c.id === filters.categoryId || c.slug === filters.categoryId)?.name;
   const hasPrice = filters.minPrice || filters.maxPrice;
   const hasActiveFilters =
-    searchQuery || filters.categoryId || hasPrice || (filters.conditions && filters.conditions.length > 0) || filters.sellerType;
+    searchQuery ||
+    filters.categoryId ||
+    hasPrice ||
+    (filters.conditions && filters.conditions.length > 0) ||
+    filters.sellerType ||
+    filters.branch ||
+    filters.semester;
 
   if (!hasActiveFilters) return null;
 
@@ -55,6 +65,14 @@ export const ActiveFilterChips: React.FC<ActiveFilterChipsProps> = ({
 
       {categoryName && (
         <Chip label={categoryName} onRemove={onRemoveCategory} />
+      )}
+
+      {filters.branch && (
+        <Chip label={`Branch: ${filters.branch}`} onRemove={onRemoveBranch || (() => {})} />
+      )}
+
+      {filters.semester && (
+        <Chip label={`Semester ${filters.semester}`} onRemove={onRemoveSemester || (() => {})} />
       )}
 
       {hasPrice && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../lib/api/client';
 import { queryClient } from '../../lib/queryClient';
+import { useAuthStore } from '../../stores/authStore';
 import { formatINR } from '../../lib/formatters';
 
 export interface SellerProductItem {
@@ -17,7 +18,9 @@ export interface SellerProductItem {
 }
 
 export const SellerProductsPage: React.FC = () => {
+  const { user } = useAuthStore();
   const [products, setProducts] = useState<SellerProductItem[]>([]);
+  const [sellerStatus, setSellerStatus] = useState<string | null>(user?.sellerStatus || null);
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +33,14 @@ export const SellerProductsPage: React.FC = () => {
         limit: '50',
         ...(statusFilter ? { status: statusFilter } : {}),
       });
-      const res: any = await apiClient.get(`/products/seller/me?${queryParams.toString()}`);
-      setProducts(res.data.products || []);
+      const [prodRes, statusRes]: any = await Promise.all([
+        apiClient.get(`/products/seller/me?${queryParams.toString()}`),
+        apiClient.get('/sellers/me/status').catch(() => null),
+      ]);
+      setProducts(prodRes.data.products || []);
+      if (statusRes?.data?.status) {
+        setSellerStatus(statusRes.data.status);
+      }
     } catch (err: any) {
       setError(err.message || 'Couldn\'t load your products. Please try again.');
     } finally {
@@ -94,6 +103,48 @@ export const SellerProductsPage: React.FC = () => {
           + Post New Product Listing
         </Link>
       </div>
+
+      {sellerStatus === 'PENDING' && (
+        <div className="p-6 rounded-[24px] bg-[#C8A46A]/15 border border-[#C8A46A]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#C8A46A]/30 text-[#8B6A4F] flex items-center justify-center shrink-0 text-sm mt-0.5">
+              ⏳
+            </div>
+            <div>
+              <h4 className="font-semibold text-xs text-[#3B2A22] uppercase tracking-wider">
+                Storefront Awaiting Admin Approval
+              </h4>
+              <p className="text-xs text-[#6E5948] mt-0.5">
+                Your seller application is currently pending verification by a campus administrator. You can create and publish product listings once your storefront is approved.
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 px-3 py-1 rounded-full bg-[#C8A46A]/20 text-[#8B6A4F] border border-[#C8A46A]/30 text-[10px] font-bold uppercase tracking-wider self-start sm:self-center">
+            Pending Review
+          </span>
+        </div>
+      )}
+
+      {sellerStatus === 'REJECTED' && (
+        <div className="p-6 rounded-[24px] bg-[#9B5C52]/15 border border-[#9B5C52]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#9B5C52]/30 text-[#9B5C52] flex items-center justify-center shrink-0 text-sm mt-0.5">
+              ❌
+            </div>
+            <div>
+              <h4 className="font-semibold text-xs text-[#9B5C52] uppercase tracking-wider">
+                Storefront Application Rejected
+              </h4>
+              <p className="text-xs text-[#6E5948] mt-0.5">
+                Your seller storefront application was not approved. Please verify your credentials or contact campus support.
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 px-3 py-1 rounded-full bg-[#9B5C52]/20 text-[#9B5C52] border border-[#9B5C52]/30 text-[10px] font-bold uppercase tracking-wider self-start sm:self-center">
+            Rejected
+          </span>
+        </div>
+      )}
 
       {message && (
         <div className="p-4 rounded-2xl bg-[#6E8A62]/15 border border-[#6E8A62]/30 text-[#6E8A62] font-sans text-xs font-semibold">

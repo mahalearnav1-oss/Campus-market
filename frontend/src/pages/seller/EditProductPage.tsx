@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiClient } from '../../lib/api/client';
 import { queryClient } from '../../lib/queryClient';
 import { ImageUpload } from '../../components/ImageUpload';
+import { ACADEMIC_BRANCHES, ACADEMIC_SEMESTERS } from '../../lib/academicConstants';
 
 export const EditProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,8 @@ export const EditProductPage: React.FC = () => {
   const [price, setPrice] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [conditionGrade, setConditionGrade] = useState('GOOD');
+  const [targetBranch, setTargetBranch] = useState('');
+  const [targetSemester, setTargetSemester] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,6 +35,8 @@ export const EditProductPage: React.FC = () => {
         setPrice(String(p.price));
         setQuantity(String(p.quantity));
         setConditionGrade(p.conditionGrade);
+        setTargetBranch(p.targetBranch || '');
+        setTargetSemester(p.targetSemester ? String(p.targetSemester) : '');
         if (p.images && p.images.length > 0) {
           setImageUrl(p.images[0].imageUrl);
         }
@@ -71,6 +76,8 @@ export const EditProductPage: React.FC = () => {
         price: parseFloat(price),
         quantity: parseInt(quantity, 10),
         conditionGrade,
+        targetBranch: targetBranch.trim() || null,
+        targetSemester: targetSemester ? parseInt(targetSemester, 10) : null,
         images: [{ imageUrl: imageUrl.trim(), isPrimary: true }],
       });
       queryClient.invalidateQueries();
@@ -150,9 +157,53 @@ export const EditProductPage: React.FC = () => {
           error={imageError}
         />
 
-        <div>
-          <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">Description</label>
-          <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="input-editorial w-full" />
+        {/* Academic Personalization & Targeting */}
+        <div className="p-6 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] space-y-4">
+          <div>
+            <span className="tag-editorial mb-1 block">Campus Discovery</span>
+            <h4 className="font-heading text-xl font-normal text-[#3B2A22]">Academic Targeting (Optional)</h4>
+            <p className="font-sans text-[11px] text-[#8B7562] mt-0.5">
+              Tag your item with a specific engineering branch or semester to boost its relevance score for campus students.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">
+                Target Branch / Course
+              </label>
+              <select
+                value={targetBranch}
+                onChange={(e) => setTargetBranch(e.target.value)}
+                className="input-editorial cursor-pointer"
+              >
+                <option value="">All Branches / General</option>
+                {ACADEMIC_BRANCHES.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2">
+                Target Semester
+              </label>
+              <select
+                value={targetSemester}
+                onChange={(e) => setTargetSemester(e.target.value)}
+                className="input-editorial cursor-pointer"
+              >
+                <option value="">All Semesters / General</option>
+                {ACADEMIC_SEMESTERS.map((s) => (
+                  <option key={s} value={s}>
+                    Semester {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <button

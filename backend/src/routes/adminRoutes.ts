@@ -32,6 +32,10 @@ const router = Router();
 // Public / Authenticated Report & Dispute Submission
 router.post('/reports', requireAuth, createReport);
 router.post('/disputes', requireAuth, createDispute);
+router.post('/orders/:orderId/dispute', requireAuth, (req, res, next) => {
+  req.body.orderId = req.params.orderId;
+  return createDispute(req, res, next);
+});
 
 // Admin Routes (Guarded by requireAdmin / requireModerator)
 router.get('/admin/dashboard', requireAuth, requireModerator, getDashboardAnalytics);

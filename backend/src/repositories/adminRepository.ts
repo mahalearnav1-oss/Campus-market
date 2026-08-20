@@ -119,7 +119,16 @@ export class AdminRepository {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+          user: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              createdAt: true,
+              college: { select: { id: true, name: true, code: true } },
+            },
+          },
         },
       }),
     ]);
@@ -226,8 +235,16 @@ export class AdminRepository {
         take: limit,
         orderBy: { createdAt: 'desc' },
         include: {
-          order: { include: { buyer: true, seller: true } },
-          initiator: { select: { firstName: true, email: true } },
+          order: {
+            include: {
+              buyer: { select: { id: true, firstName: true, lastName: true, email: true } },
+              seller: { select: { id: true, storeName: true, user: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+              items: true,
+              payment: true,
+              escrowLedger: true,
+            },
+          },
+          initiator: { select: { id: true, firstName: true, lastName: true, email: true } },
         },
       }),
     ]);

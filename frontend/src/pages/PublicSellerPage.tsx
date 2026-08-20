@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { ProductCard, ProductCardData } from '../components/ProductCard';
 import { RatingStars } from '../components/reviews/RatingStars';
+import { ReportModal } from '../components/reports/ReportModal';
 import { useAuthStore } from '../stores/authStore';
 
 export const PublicSellerPage: React.FC = () => {
@@ -18,6 +19,7 @@ export const PublicSellerPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isStartingChat, setIsStartingChat] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadStorefront() {
@@ -146,6 +148,25 @@ export const PublicSellerPage: React.FC = () => {
               </>
             )}
           </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                if (!isAuthenticated) {
+                  navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                  return;
+                }
+                setIsReportModalOpen(true);
+              }}
+              className="text-[11px] font-sans text-[#8B7562] hover:text-[#9B5C52] transition-colors inline-flex items-center gap-1 cursor-pointer"
+              title="Report this storefront for moderation review"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                <line x1="4" y1="22" x2="4" y2="15" />
+              </svg>
+              <span>Report Store</span>
+            </button>
+          </div>
           {chatError && <p className="font-sans text-[11px] text-[#9B5C52]">{chatError}</p>}
         </div>
       </div>
@@ -205,6 +226,15 @@ export const PublicSellerPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Abuse Report Modal */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetType="SELLER"
+        targetId={seller.id}
+        targetTitle={seller.storeName}
+      />
     </div>
   );
 };

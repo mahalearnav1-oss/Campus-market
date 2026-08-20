@@ -57,30 +57,46 @@ export const AdminProductsPage: React.FC = () => {
             <table className="w-full text-left border-collapse font-sans text-xs">
               <thead>
                 <tr className="bg-[#E7DED1] border-b border-[#D6C8B8] text-[10px] font-semibold text-[#8B7562] uppercase tracking-wider">
-                  <th className="p-4 pl-6">Listing Title</th>
-                  <th className="p-4">Seller Store</th>
-                  <th className="p-4">Price</th>
-                  <th className="p-4">Grade</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 pr-6 text-right">Actions</th>
+                  <th className="py-4 px-6 text-left">Listing Title</th>
+                  <th className="py-4 px-4 text-left">Seller Store</th>
+                  <th className="py-4 px-4 text-left">Price</th>
+                  <th className="py-4 px-4 text-center">Grade</th>
+                  <th className="py-4 px-4 text-center">Status</th>
+                  <th className="py-4 px-6 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D6C8B8]">
+              <tbody className="divide-y divide-[#D6C8B8]/60">
                 {products.map((p) => (
                   <tr key={p.id} className="hover:bg-[#E7DED1]/50 transition-colors">
-                    <td className="p-4 pl-6 font-heading text-lg font-normal text-[#3B2A22]">
-                      <Link to={`/products/${p.id}`} className="hover:text-[#8B6A4F] transition-colors">{p.title}</Link>
+                    <td className="py-4 px-6 align-middle">
+                      <Link to={`/products/${p.id}`} className="font-heading text-base font-medium text-[#3B2A22] hover:text-[#C8A46A] transition-colors block">
+                        {p.title}
+                      </Link>
                     </td>
-                    <td className="p-4 text-[#6E5948] font-medium">{p.seller?.storeName || 'Unknown Store'}</td>
-                    <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">{formatINR(p.price)}</td>
-                    <td className="p-4 font-semibold text-[#3B2A22]">{p.conditionGrade}</td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 rounded-full bg-[#6E8A62]/15 text-[#6E8A62] text-[10px] font-bold uppercase">
+                    <td className="py-4 px-4 align-middle text-[#6E5948] font-medium text-xs">
+                      {p.seller?.storeName || 'Campus Seller'}
+                    </td>
+                    <td className="py-4 px-4 align-middle font-heading text-base font-medium text-[#3B2A22] whitespace-nowrap">
+                      {formatINR(p.price)}
+                    </td>
+                    <td className="py-4 px-4 align-middle text-center whitespace-nowrap">
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#E7DED1] border border-[#D6C8B8] text-[10px] font-bold text-[#6E5948]">
+                        {p.conditionGrade.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 align-middle text-center whitespace-nowrap">
+                      <span className={`badge-status ${
+                        p.status === 'ACTIVE'
+                          ? 'badge-status-active'
+                          : p.status === 'DRAFT'
+                          ? 'badge-status-pending'
+                          : 'badge-status-suspended'
+                      }`}>
                         {p.status}
                       </span>
                     </td>
-                    <td className="p-4 pr-6 text-right">
-                      <Link to={`/products/${p.id}`} className="btn-secondary text-[10px] !py-1.5 !px-3">
+                    <td className="py-4 px-6 align-middle text-right whitespace-nowrap">
+                      <Link to={`/products/${p.id}`} className="btn-secondary text-[11px] !py-1.5 !px-3.5 !min-h-[32px]">
                         Inspect Item →
                       </Link>
                     </td>

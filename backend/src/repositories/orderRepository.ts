@@ -44,6 +44,7 @@ export class OrderRepository {
           select: { id: true, sellerId: true, rating: true, comment: true, createdAt: true, updatedAt: true },
         },
         statusHistory: { orderBy: { createdAt: 'asc' } },
+        dispute: true,
       },
     });
   }
@@ -129,6 +130,7 @@ export class OrderRepository {
     primarySellerId: string;
     shippingAddressId: string;
     fulfillmentMode: FulfillmentMode;
+    paymentMethod?: PaymentMethod;
     subtotal: Prisma.Decimal;
     totalAmount: Prisma.Decimal;
     items: OrderItemSnapshotInput[];
@@ -139,6 +141,7 @@ export class OrderRepository {
       primarySellerId,
       shippingAddressId,
       fulfillmentMode,
+      paymentMethod,
       subtotal,
       totalAmount,
       items,
@@ -231,7 +234,7 @@ export class OrderRepository {
           amount: totalAmount,
           currency: 'INR',
           status: PaymentStatus.RELEASED_TO_SELLER,
-          paymentMethod: PaymentMethod.CREDIT_CARD,
+          paymentMethod: paymentMethod || PaymentMethod.UPI,
           razorpayOrderId: `rzp_${orderNumber}`,
           razorpayPaymentId: `pay_sim_${Date.now()}`,
           paidAt: new Date(),

@@ -4,14 +4,15 @@ import { CreateProductInput, UpdateProductInput, ProductDiscoveryQueryInput } fr
 import { logAuditEvent } from '../utils/auditLogger';
 import { ProductStatus, SellerStatus, ConditionGrade } from '@prisma/client';
 import { prisma } from '../config/prisma';
+import { alertService } from './alertService';
 
 export class ProductService {
   async createProduct(userId: string, sellerId: string, collegeId: string | null, input: CreateProductInput, ipAddress?: string) {
     const seller = await sellerRepository.findById(sellerId);
-    if (!seller || seller.status === SellerStatus.SUSPENDED) {
-      const error: any = new Error('Your seller account must be active to list products.');
+    if (!seller || seller.status !== SellerStatus.VERIFIED) {
+      const error: any = new Error('Your seller storefront must be approved by a campus administrator to create product listings.');
       error.statusCode = 403;
-      error.code = 'SELLER_NOT_ACTIVE';
+      error.code = 'SELLER_NOT_VERIFIED';
       throw error;
     }
 
@@ -56,7 +57,14 @@ export class ProductService {
     return product;
   }
 
-  async getPublicProducts(query: ProductDiscoveryQueryInput) {
+  async getPublicProducts(
+    query: ProductDiscoveryQueryInput,
+    userAcademicContext?: {
+      collegeId?: string | null;
+      course?: string | null;
+      semester?: number | null;
+    }
+  ) {
     // Sanitize & Normalize Search Query
     const sanitizedQ = query.q ? query.q.trim().slice(0, 100) : undefined;
 
@@ -86,6 +94,10 @@ export class ProductService {
       conditions,
       sellerType: query.sellerType,
       collegeId: query.collegeId || query.campusId,
+      branch: query.branch,
+      semester: query.semester,
+      forYou: query.forYou,
+      userAcademicContext,
       availableOnly: query.availableOnly,
       sort: query.sort,
       page: query.page || 1,
@@ -121,6 +133,14 @@ export class ProductService {
   }
 
   async updateProduct(userId: string, sellerId: string, productId: string, input: UpdateProductInput, ipAddress?: string) {
+    const seller = await sellerRepository.findById(sellerId);
+    if (!seller || seller.status !== SellerStatus.VERIFIED) {
+      const error: any = new Error('Your seller storefront must be approved by a campus administrator to update product listings.');
+      error.statusCode = 403;
+      error.code = 'SELLER_NOT_VERIFIED';
+      throw error;
+    }
+
     const product = await productRepository.findById(productId);
     if (!product || product.deletedAt) {
       const error: any = new Error('We couldn\'t find this product listing.');
@@ -145,12 +165,44 @@ export class ProductService {
       }
     }
 
+    const oldPrice = Number(product.price);
+    const oldQuantity = product.quantity;
+    const oldStatus = product.status;
+
     const updated = await productRepository.updateProduct(productId, input);
     await logAuditEvent('PRODUCT_UPDATED', 'Product', userId, productId, { updatedFields: Object.keys(input) }, ipAddress);
+
+    // Trigger Price Drop Alerts if price was lowered
+    if (input.price !== undefined) {
+      const newPrice = Number(input.price);
+      if (newPrice < oldPrice) {
+        await alertService.onProductPriceChanged(productId, oldPrice, newPrice, updated.title);
+      }
+    }
+
+    // Trigger Availability Alerts if product became available
+    const newQuantity = updated.quantity;
+    const newStatus = updated.status;
+    const becameAvailable =
+      (oldQuantity <= 0 && newQuantity > 0 && newStatus === ProductStatus.ACTIVE) ||
+      (oldStatus !== ProductStatus.ACTIVE && newStatus === ProductStatus.ACTIVE && newQuantity > 0);
+
+    if (becameAvailable) {
+      await alertService.onProductBecameAvailable(productId, updated.title);
+    }
+
     return updated;
   }
 
   async publishProduct(userId: string, sellerId: string, productId: string, ipAddress?: string) {
+    const seller = await sellerRepository.findById(sellerId);
+    if (!seller || seller.status !== SellerStatus.VERIFIED) {
+      const error: any = new Error('Your seller storefront must be approved by a campus administrator to publish product listings.');
+      error.statusCode = 403;
+      error.code = 'SELLER_NOT_VERIFIED';
+      throw error;
+    }
+
     const product = await productRepository.findById(productId);
     if (!product || product.deletedAt) {
       const error: any = new Error('Product listing not found.');
@@ -180,8 +232,14 @@ export class ProductService {
       throw error;
     }
 
+    const oldStatus = product.status;
     const published = await productRepository.updateStatus(productId, ProductStatus.ACTIVE);
     await logAuditEvent('PRODUCT_PUBLISHED', 'Product', userId, productId, {}, ipAddress);
+
+    if (oldStatus !== ProductStatus.ACTIVE && published.quantity > 0) {
+      await alertService.onProductBecameAvailable(productId, published.title);
+    }
+
     return published;
   }
 

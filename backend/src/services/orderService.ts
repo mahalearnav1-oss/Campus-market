@@ -129,6 +129,7 @@ export class OrderService {
       primarySellerId,
       shippingAddressId: address.id,
       fulfillmentMode: input.fulfillmentMode,
+      paymentMethod: input.paymentMethod,
       subtotal,
       totalAmount,
       items: itemSnapshots,

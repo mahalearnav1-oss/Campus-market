@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore, UserRole } from '../stores/authStore';
 import { apiClient } from '../lib/api/client';
+import { ACADEMIC_BRANCHES, ACADEMIC_SEMESTERS } from '../lib/academicConstants';
 
 export interface CollegeOption {
   id: string;
@@ -18,6 +19,8 @@ export const RegisterPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('STUDENT_BUYER');
   const [collegeId, setCollegeId] = useState('');
+  const [course, setCourse] = useState('');
+  const [semester, setSemester] = useState('');
   const [colleges, setColleges] = useState<CollegeOption[]>([]);
   const [isLoadingColleges, setIsLoadingColleges] = useState(true);
   const [collegeFetchError, setCollegeFetchError] = useState<string | null>(null);
@@ -64,7 +67,16 @@ export const RegisterPage: React.FC = () => {
       return;
     }
     try {
-      await register({ firstName, lastName, email, password, role, collegeId });
+      await register({
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        collegeId,
+        course: course.trim() || null,
+        semester: semester ? parseInt(semester, 10) : null,
+      });
       navigate('/account');
     } catch (err) {
       // Handled in store
@@ -214,6 +226,44 @@ export const RegisterPage: React.FC = () => {
                   ))}
                 </select>
               )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="w-full">
+                <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2 truncate" title="Branch / Course (optional)">
+                  Branch / Course <span className="text-[#8B7562] font-normal lowercase">(optional)</span>
+                </label>
+                <select
+                  value={course}
+                  onChange={(e) => setCourse(e.target.value)}
+                  className="input-editorial cursor-pointer w-full"
+                >
+                  <option value="">Branch</option>
+                  {ACADEMIC_BRANCHES.map((b) => (
+                    <option key={b} value={b}>
+                      {b}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="w-full">
+                <label className="font-sans text-[10px] tracking-[0.15em] uppercase font-semibold text-[#8B7562] block mb-2 truncate" title="Semester (optional)">
+                  Semester <span className="text-[#8B7562] font-normal lowercase">(optional)</span>
+                </label>
+                <select
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                  className="input-editorial cursor-pointer w-full"
+                >
+                  <option value="">Semester</option>
+                  {ACADEMIC_SEMESTERS.map((s) => (
+                    <option key={s} value={s}>
+                      Semester {s}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>

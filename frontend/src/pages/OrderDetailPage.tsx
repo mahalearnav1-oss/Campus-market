@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../lib/api/client';
 import { RatingStars } from '../components/reviews/RatingStars';
 import { ReviewModal, ExistingReviewData } from '../components/reviews/ReviewModal';
+import { DisputeModal } from '../components/disputes/DisputeModal';
 import { formatINR } from '../lib/formatters';
 
 export const OrderDetailPage: React.FC = () => {
@@ -10,6 +11,8 @@ export const OrderDetailPage: React.FC = () => {
   const [order, setOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [disputeSuccessMsg, setDisputeSuccessMsg] = useState<string | null>(null);
 
   // Review Modal State
   const [modalState, setModalState] = useState<{
@@ -227,6 +230,76 @@ export const OrderDetailPage: React.FC = () => {
         </div>
       )}
 
+      {/* Dispute Success Alert */}
+      {disputeSuccessMsg && (
+        <div className="p-4 rounded-2xl bg-[#6E8A62]/15 border border-[#6E8A62]/30 text-[#6E8A62] text-xs font-sans font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span>✓</span>
+            <span>{disputeSuccessMsg}</span>
+          </div>
+          <button onClick={() => setDisputeSuccessMsg(null)} className="hover:opacity-75">✕</button>
+        </div>
+      )}
+
+      {/* Active Dispute Information Card */}
+      {order.dispute && (
+        <div className="p-6 sm:p-8 rounded-[28px] bg-[#9B5C52]/10 border border-[#9B5C52]/25 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#9B5C52]/20 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#9B5C52] animate-pulse" />
+              <h4 className="font-heading text-xl font-normal text-[#9B5C52]">
+                Escrow Dispute Active ({order.dispute.reason.replace(/_/g, ' ')})
+              </h4>
+            </div>
+            <span className="font-sans text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-[#9B5C52]/15 text-[#9B5C52] border border-[#9B5C52]/30 self-start sm:self-auto">
+              Status: {order.dispute.status.replace(/_/g, ' ')}
+            </span>
+          </div>
+
+          <div className="font-sans text-xs text-[#6E5948] space-y-2">
+            <p>
+              <strong className="text-[#3B2A22]">Dispute Explanation:</strong> {order.dispute.explanation}
+            </p>
+            {order.dispute.resolutionNotes && (
+              <div className="p-3.5 rounded-2xl bg-[#EDE5D9] border border-[#D6C8B8] text-xs space-y-1">
+                <span className="font-semibold text-[#3B2A22] block">Resolution Decision / Admin Notes:</span>
+                <p className="text-[#6E5948]">{order.dispute.resolutionNotes}</p>
+              </div>
+            )}
+            <p className="text-[11px] text-[#8B7562]">
+              Submitted on {new Date(order.dispute.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Open Dispute Action Section (If eligible and not disputed) */}
+      {!order.dispute && ['PAID_ESCROW', 'SELLER_ACCEPTED', 'DELIVERED_PENDING_INSPECTION', 'COMPLETED'].includes(order.status) && (
+        <div className="p-6 rounded-[28px] bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-subtle flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans text-xs">
+          <div>
+            <h4 className="font-heading text-xl font-normal text-[#3B2A22]">
+              Need Help with this Campus Exchange?
+            </h4>
+            <p className="text-[#8B7562] mt-0.5">
+              If the item condition was misrepresented, or the handover could not be completed, you can open an escrow dispute.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsDisputeModalOpen(true)}
+            className="btn-secondary !py-2.5 !px-5 text-xs text-[#9B5C52] border-[#9B5C52]/40 hover:border-[#9B5C52] hover:bg-[#9B5C52]/10 shrink-0 inline-flex items-center gap-1.5"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>Open Dispute</span>
+          </button>
+        </div>
+      )}
+
       {/* Review Modal */}
       <ReviewModal
         isOpen={modalState.isOpen}
@@ -242,6 +315,18 @@ export const OrderDetailPage: React.FC = () => {
         itemTitle={modalState.itemTitle}
         itemImage={modalState.itemImage}
         existingReview={modalState.existingReview}
+      />
+
+      {/* Dispute Modal */}
+      <DisputeModal
+        isOpen={isDisputeModalOpen}
+        onClose={() => setIsDisputeModalOpen(false)}
+        onSuccess={() => {
+          setDisputeSuccessMsg('Dispute submitted successfully. Our resolution team will review the case.');
+          loadOrder();
+        }}
+        orderId={order.id}
+        orderNumber={order.orderNumber}
       />
     </div>
   );

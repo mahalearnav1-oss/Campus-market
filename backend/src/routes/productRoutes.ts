@@ -12,25 +12,25 @@ import {
   setPrimaryProductImage,
   deleteProductImage,
 } from '../controllers/productController';
-import { requireAuth, requireSeller } from '../middleware/authMiddleware';
+import { requireAuth, requireSeller, requireVerifiedSeller, optionalAuth } from '../middleware/authMiddleware';
 
 const router = Router();
 
 // Public Product APIs
-router.get('/', getPublicProducts);
-router.get('/:id', getProductDetail);
+router.get('/', optionalAuth, getPublicProducts);
+router.get('/:id', optionalAuth, getProductDetail);
 
 // Authenticated Seller Product APIs
 router.get('/seller/me', requireAuth, requireSeller, getSellerProducts);
-router.post('/', requireAuth, requireSeller, createProduct);
-router.patch('/:id', requireAuth, requireSeller, updateProduct);
-router.delete('/:id', requireAuth, requireSeller, deleteProduct);
-router.post('/:id/publish', requireAuth, requireSeller, publishProduct);
-router.post('/:id/pause', requireAuth, requireSeller, pauseProduct);
+router.post('/', requireAuth, requireVerifiedSeller, createProduct);
+router.patch('/:id', requireAuth, requireVerifiedSeller, updateProduct);
+router.delete('/:id', requireAuth, requireVerifiedSeller, deleteProduct);
+router.post('/:id/publish', requireAuth, requireVerifiedSeller, publishProduct);
+router.post('/:id/pause', requireAuth, requireVerifiedSeller, pauseProduct);
 
 // Product Image Management APIs
-router.post('/:id/images', requireAuth, requireSeller, addProductImage);
-router.patch('/:id/images/:imageId', requireAuth, requireSeller, setPrimaryProductImage);
-router.delete('/:id/images/:imageId', requireAuth, requireSeller, deleteProductImage);
+router.post('/:id/images', requireAuth, requireVerifiedSeller, addProductImage);
+router.patch('/:id/images/:imageId', requireAuth, requireVerifiedSeller, setPrimaryProductImage);
+router.delete('/:id/images/:imageId', requireAuth, requireVerifiedSeller, deleteProductImage);
 
 export default router;

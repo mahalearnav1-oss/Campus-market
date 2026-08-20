@@ -13,6 +13,7 @@ export const AccountLayout: React.FC = () => {
     { label: 'Preferences', path: '/account/preferences' },
     { label: 'Addresses', path: '/account/addresses' },
     { label: 'Wishlist', path: '/wishlist' },
+    { label: 'Price Alerts', path: '/price-alerts' },
     { label: 'My Orders', path: '/orders' },
     { label: 'Messages', path: '/messages' },
   ];

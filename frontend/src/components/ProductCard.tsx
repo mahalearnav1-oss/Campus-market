@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatINR } from '../lib/formatters';
+import { useAuthStore } from '../stores/authStore';
+import { formatBranchShort } from '../lib/academicConstants';
 
 export interface ProductCardData {
   id: string;
@@ -10,6 +12,8 @@ export interface ProductCardData {
   conditionGrade: string;
   status: string;
   quantity: number;
+  targetBranch?: string | null;
+  targetSemester?: number | null;
   category?: { name: string; slug: string } | null;
   college?: { name: string; code: string } | null;
   seller?: { storeName: string; sellerType: string; rating: string | number } | null;
@@ -37,6 +41,7 @@ const conditionStyles: Record<string, { label: string; badgeClass: string }> = {
 const DEFAULT_FALLBACK_IMAGE = '/images/chemistry_textbook_cover_1786457575258.png';
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const { user } = useAuthStore();
   if (!product) return null;
 
   const primaryImage =
@@ -57,6 +62,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     numMsrp && numMsrp > numPrice && numMsrp > 0
       ? Math.round(((numMsrp - numPrice) / numMsrp) * 100)
       : null;
+
+  const isBranchMatch = Boolean(user?.course && product.targetBranch && user.course.toLowerCase() === product.targetBranch.toLowerCase());
+  const isSemesterMatch = Boolean(user?.semester && product.targetSemester && user.semester === product.targetSemester);
+  const isUserMatch = isBranchMatch || isSemesterMatch;
 
   return (
     <Link
@@ -115,11 +124,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Body Content */}
       <div className="p-5 flex flex-col flex-1 justify-between space-y-4">
         <div className="space-y-1.5">
-          {product.category?.name && (
-            <span className="tag-editorial block">
-              {product.category.name}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {product.category?.name && (
+              <span className="tag-editorial">
+                {product.category.name}
+              </span>
+            )}
+
+            {isUserMatch ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#6E8A62]/15 text-[#6E8A62] border border-[#6E8A62]/30 text-[10px] font-sans font-semibold tracking-tight">
+                <span>🎓</span>
+                <span>
+                  Matches your {product.targetSemester ? `Sem ${product.targetSemester}` : ''}
+                  {product.targetSemester && product.targetBranch ? ' · ' : ''}
+                  {formatBranchShort(product.targetBranch)}
+                </span>
+              </span>
+            ) : (product.targetBranch || product.targetSemester) ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#E7DED1] text-[#6E5948] border border-[#D6C8B8] text-[10px] font-sans font-medium">
+                <span>🎓</span>
+                <span>
+                  {product.targetSemester ? `Sem ${product.targetSemester}` : ''}
+                  {product.targetSemester && product.targetBranch ? ' · ' : ''}
+                  {formatBranchShort(product.targetBranch)}
+                </span>
+              </span>
+            ) : null}
+          </div>
 
           <h3 className="font-heading text-xl font-normal text-[#3B2A22] leading-snug group-hover:text-[#8B6A4F] transition-colors line-clamp-2">
             {product.title}

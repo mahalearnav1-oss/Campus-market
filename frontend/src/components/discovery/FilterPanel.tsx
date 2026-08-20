@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CategoryData } from '../../pages/MarketplacePage';
+import { ACADEMIC_BRANCHES, ACADEMIC_SEMESTERS } from '../../lib/academicConstants';
 
 export interface FilterState {
   categoryId?: string;
@@ -7,6 +8,8 @@ export interface FilterState {
   maxPrice?: string;
   conditions: string[];
   sellerType?: string;
+  branch?: string;
+  semester?: string;
 }
 
 interface FilterPanelProps {
@@ -46,6 +49,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   const [localMaxPrice, setLocalMaxPrice] = useState(filters.maxPrice || '');
   const [localConditions, setLocalConditions] = useState<string[]>(filters.conditions || []);
   const [localSellerType, setLocalSellerType] = useState(filters.sellerType || '');
+  const [localBranch, setLocalBranch] = useState(filters.branch || '');
+  const [localSemester, setLocalSemester] = useState(filters.semester || '');
 
   useEffect(() => {
     setLocalCategory(filters.categoryId || '');
@@ -53,6 +58,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     setLocalMaxPrice(filters.maxPrice || '');
     setLocalConditions(filters.conditions || []);
     setLocalSellerType(filters.sellerType || '');
+    setLocalBranch(filters.branch || '');
+    setLocalSemester(filters.semester || '');
   }, [filters]);
 
   const toggleCondition = (cond: string) => {
@@ -68,6 +75,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       maxPrice: localMaxPrice || undefined,
       conditions: localConditions,
       sellerType: localSellerType || undefined,
+      branch: localBranch || undefined,
+      semester: localSemester || undefined,
     });
     if (onCloseMobile) onCloseMobile();
   };
@@ -78,6 +87,8 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
     setLocalMaxPrice('');
     setLocalConditions([]);
     setLocalSellerType('');
+    setLocalBranch('');
+    setLocalSemester('');
     onClearFilters();
     if (onCloseMobile) onCloseMobile();
   };
@@ -116,6 +127,56 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               )}
             </button>
           ))}
+        </div>
+      </FilterSection>
+
+      {/* Academic Branch */}
+      <FilterSection title="Target Branch">
+        <select
+          value={localBranch}
+          onChange={(e) => setLocalBranch(e.target.value)}
+          className="w-full bg-[#E7DED1] border border-[#D6C8B8] text-[#3B2A22] text-xs font-sans py-2 px-3 rounded-xl focus:outline-none focus:border-[#C8A46A] cursor-pointer"
+        >
+          <option value="">All Branches</option>
+          {ACADEMIC_BRANCHES.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+      </FilterSection>
+
+      {/* Academic Semester */}
+      <FilterSection title="Target Semester">
+        <div className="grid grid-cols-4 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setLocalSemester('')}
+            className={`py-1.5 text-[11px] font-sans font-semibold rounded-lg border transition-all ${
+              !localSemester
+                ? 'bg-[#111111] text-[#F4EFE7] border-[#111111]'
+                : 'bg-[#E7DED1] text-[#6E5948] border-[#D6C8B8] hover:border-[#C8A46A]'
+            }`}
+          >
+            All
+          </button>
+          {ACADEMIC_SEMESTERS.map((sem) => {
+            const isSelected = localSemester === String(sem);
+            return (
+              <button
+                key={sem}
+                type="button"
+                onClick={() => setLocalSemester(isSelected ? '' : String(sem))}
+                className={`py-1.5 text-[11px] font-sans font-semibold rounded-lg border transition-all ${
+                  isSelected
+                    ? 'bg-[#C8A46A] text-[#111111] border-[#C8A46A]'
+                    : 'bg-[#E7DED1] text-[#6E5948] border-[#D6C8B8] hover:border-[#C8A46A]'
+                }`}
+              >
+                S{sem}
+              </button>
+            );
+          })}
         </div>
       </FilterSection>
 

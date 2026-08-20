@@ -93,7 +93,9 @@ export const BuyerOrdersPage: React.FC = () => {
                   </Link>
                   <span
                     className={`px-3 py-1 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider ${
-                      ord.status === 'CANCELLED'
+                      ord.status === 'DISPUTED'
+                        ? 'bg-[#9B5C52]/15 text-[#9B5C52] border border-[#9B5C52]/30 animate-pulse'
+                        : ord.status === 'CANCELLED' || ord.status === 'REFUNDED'
                         ? 'bg-[#9B5C52]/15 text-[#9B5C52]'
                         : ord.status === 'COMPLETED'
                         ? 'bg-[#6E8A62]/15 text-[#6E8A62]'

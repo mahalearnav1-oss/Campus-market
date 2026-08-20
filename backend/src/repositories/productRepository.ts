@@ -12,6 +12,14 @@ export interface DiscoveryOptions {
   conditions?: ConditionGrade[];
   sellerType?: SellerType;
   collegeId?: string;
+  branch?: string;
+  semester?: number;
+  forYou?: boolean;
+  userAcademicContext?: {
+    collegeId?: string | null;
+    course?: string | null;
+    semester?: number | null;
+  };
   availableOnly?: boolean;
   sort?: 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'recently_updated';
   page: number;
@@ -43,6 +51,8 @@ export class ProductRepository {
           quantity: input.quantity || 1,
           status,
           allowedFulfillments: input.allowedFulfillments || 'CAMPUS_MEETUP,COURIER_SHIPPING',
+          targetBranch: input.targetBranch ? input.targetBranch.trim() : null,
+          targetSemester: input.targetSemester ? Number(input.targetSemester) : null,
           ...(input.bookDetails ? {
             bookDetails: {
               create: {
@@ -89,6 +99,10 @@ export class ProductRepository {
       conditions,
       sellerType,
       collegeId,
+      branch,
+      semester,
+      forYou,
+      userAcademicContext,
       availableOnly,
       sort = 'newest',
       page = 1,
@@ -139,6 +153,32 @@ export class ProductRepository {
       where.seller = { sellerType };
     }
 
+    // Explicit Branch Filter
+    if (branch && branch.trim().length > 0) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { targetBranch: branch.trim() },
+            { targetBranch: null },
+          ],
+        },
+      ];
+    }
+
+    // Explicit Semester Filter
+    if (semester !== undefined && semester !== null) {
+      where.AND = [
+        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+        {
+          OR: [
+            { targetSemester: semester },
+            { targetSemester: null },
+          ],
+        },
+      ];
+    }
+
     // Multi-term Search Parameter (q)
     if (q && q.trim().length > 0) {
       const searchTerm = q.trim();
@@ -162,6 +202,65 @@ export class ProductRepository {
       orderBy = { price: 'desc' };
     } else if (sort === 'recently_updated') {
       orderBy = { updatedAt: 'desc' };
+    }
+
+    // "For You" Relevance Ranking Execution
+    if (forYou && userAcademicContext && (userAcademicContext.course || userAcademicContext.semester)) {
+      // Fetch all candidate active products matching where clause to rank deterministically
+      const allCandidates = await prisma.product.findMany({
+        where,
+        orderBy,
+        include: {
+          images: { orderBy: { displayOrder: 'asc' } },
+          bookDetails: true,
+          category: { select: { id: true, name: true, slug: true } },
+          subcategory: { select: { id: true, name: true, slug: true } },
+          college: { select: { id: true, name: true, code: true } },
+          seller: { select: { id: true, storeName: true, sellerType: true, rating: true } },
+        },
+      });
+
+      const scoreProduct = (p: any): number => {
+        let score = 0;
+        const isSameCollege = userAcademicContext.collegeId && p.collegeId === userAcademicContext.collegeId;
+        const matchesBranch = !!(userAcademicContext.course && p.targetBranch && p.targetBranch.toLowerCase() === userAcademicContext.course.toLowerCase());
+        const matchesSemester = !!(userAcademicContext.semester && p.targetSemester && p.targetSemester === userAcademicContext.semester);
+        const isGeneric = !p.targetBranch && !p.targetSemester;
+
+        if (isSameCollege) score += 10;
+        if (matchesBranch && matchesSemester) score += 40;
+        else if (matchesBranch) score += 25;
+        else if (matchesSemester) score += 15;
+        else if (isGeneric) score += 5;
+
+        return score;
+      };
+
+      // Sort by relevance score descending, keeping secondary sort
+      allCandidates.sort((a, b) => {
+        const scoreA = scoreProduct(a);
+        const scoreB = scoreProduct(b);
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      const total = allCandidates.length;
+      const totalPages = Math.ceil(total / limit) || 1;
+      const paginatedProducts = allCandidates.slice(skip, skip + limit);
+
+      return {
+        products: paginatedProducts,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        },
+      };
     }
 
     const [total, products] = await Promise.all([
@@ -265,6 +364,8 @@ export class ProductRepository {
           ...(input.originalMsrp !== undefined ? { originalMsrp: input.originalMsrp ? new Prisma.Decimal(input.originalMsrp) : null } : {}),
           ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
           ...(input.allowedFulfillments ? { allowedFulfillments: input.allowedFulfillments } : {}),
+          ...(input.targetBranch !== undefined ? { targetBranch: input.targetBranch ? input.targetBranch.trim() : null } : {}),
+          ...(input.targetSemester !== undefined ? { targetSemester: input.targetSemester ? Number(input.targetSemester) : null } : {}),
         },
         include: {
           images: { orderBy: { displayOrder: 'asc' } },

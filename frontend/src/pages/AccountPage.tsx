@@ -70,7 +70,7 @@ export const AccountPage: React.FC = () => {
         </div>
 
         {/* Metadata Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-xs pt-6 border-t border-[#D6C8B8]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 text-xs pt-6 border-t border-[#D6C8B8]">
           <Link
             to="/account/profile"
             className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all block group"
@@ -81,6 +81,32 @@ export const AccountPage: React.FC = () => {
             </div>
             <span className="font-sans font-semibold text-[#3B2A22] block truncate" title={user.college?.name || 'Assigned Campus'}>
               {user.college?.code || (user.college?.name ? user.college.name.substring(0, 16) : 'Verified Campus')}
+            </span>
+          </Link>
+
+          <Link
+            to="/account/profile"
+            className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Branch</span>
+              <span className="text-[10px] text-[#C8A46A] opacity-0 group-hover:opacity-100 transition-opacity font-semibold">Edit →</span>
+            </div>
+            <span className="font-sans font-semibold text-[#3B2A22] block truncate" title={user.course || 'Not set'}>
+              {user.course || <span className="text-[#8B7562] italic font-normal">Not set</span>}
+            </span>
+          </Link>
+
+          <Link
+            to="/account/profile"
+            className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Semester</span>
+              <span className="text-[10px] text-[#C8A46A] opacity-0 group-hover:opacity-100 transition-opacity font-semibold">Edit →</span>
+            </div>
+            <span className="font-sans font-semibold text-[#3B2A22] block truncate">
+              {user.semester ? `Semester ${user.semester}` : <span className="text-[#8B7562] italic font-normal">Not set</span>}
             </span>
           </Link>
 
@@ -115,18 +141,11 @@ export const AccountPage: React.FC = () => {
               )}
             </span>
           </div>
-
-          <div className="p-4 rounded-2xl bg-[#E7DED1] border border-[#D6C8B8]">
-            <span className="font-sans text-[10px] tracking-[0.15em] uppercase text-[#8B7562] block font-semibold mb-1">Seller Profile</span>
-            <span className="font-sans font-semibold text-[#3B2A22] block truncate">
-              {user.sellerId ? 'Active Seller' : 'Buyer Account'}
-            </span>
-          </div>
         </div>
       </div>
 
       {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link to="/orders" className="p-6 rounded-[28px] bg-[#EDE5D9] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all group">
           <div className="w-10 h-10 rounded-xl bg-[#F4EFE7] border border-[#D6C8B8] text-[#3B2A22] flex items-center justify-center mb-4 group-hover:bg-[#111111] group-hover:text-[#F4EFE7] transition-all">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -147,6 +166,14 @@ export const AccountPage: React.FC = () => {
           </div>
           <h3 className="font-heading text-xl font-normal text-[#3B2A22] mb-1">Saved Wishlist</h3>
           <p className="text-xs text-[#8B7562]">Browse saved textbooks & course gear</p>
+        </Link>
+
+        <Link to="/price-alerts" className="p-6 rounded-[28px] bg-[#EDE5D9] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all group">
+          <div className="w-10 h-10 rounded-xl bg-[#F4EFE7] border border-[#D6C8B8] text-[#C8A46A] flex items-center justify-center mb-4 group-hover:bg-[#111111] group-hover:text-[#F4EFE7] transition-all text-lg">
+            🔔
+          </div>
+          <h3 className="font-heading text-xl font-normal text-[#3B2A22] mb-1">Price Alerts</h3>
+          <p className="text-xs text-[#8B7562]">Track products & price-drop alerts</p>
         </Link>
 
         <Link to="/seller/products" className="p-6 rounded-[28px] bg-[#EDE5D9] border border-[#D6C8B8] hover:border-[#C8A46A] transition-all group">

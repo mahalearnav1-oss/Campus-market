@@ -90,10 +90,11 @@
 
   /* Deep Obsidian filled — primary action */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2.5
-           px-8 py-3.5 rounded-full font-sans text-sm font-semibold tracking-[0.08em] uppercase
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 min-h-[44px] rounded-full font-sans text-xs font-semibold tracking-[0.08em] uppercase
            transition-all duration-300
-           active:scale-95 cursor-pointer;
+           active:scale-95 cursor-pointer
+           focus:outline-none focus:ring-2 focus:ring-[#C8A46A]/50 focus:ring-offset-2;
     background-color: #111111;
     color: #F4EFE7;
     box-shadow: 0 4px 16px rgba(17, 17, 17, 0.15);
@@ -102,7 +103,7 @@
     background-color: #262626;
     color: #FFFFFF;
     box-shadow: 0 8px 24px rgba(17, 17, 17, 0.25);
-    transform: translateY(-2px);
+    transform: translateY(-1.5px);
   }
   .btn-primary:disabled {
     opacity: 0.45;
@@ -113,26 +114,28 @@
 
   /* Vibrant Sage — Escrow CTA action */
   .btn-emerald {
-    @apply inline-flex items-center justify-center gap-2.5
-           px-8 py-3.5 rounded-full font-sans text-sm font-semibold tracking-[0.08em] uppercase
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 min-h-[44px] rounded-full font-sans text-xs font-semibold tracking-[0.08em] uppercase
            transition-all duration-300
-           active:scale-95 cursor-pointer text-white;
+           active:scale-95 cursor-pointer text-white
+           focus:outline-none focus:ring-2 focus:ring-[#6E8A62]/50 focus:ring-offset-2;
     background-color: #6E8A62;
     color: #F4EFE7;
-    box-shadow: 0 6px 18px rgba(110, 138, 98, 0.25);
+    box-shadow: 0 4px 14px rgba(110, 138, 98, 0.25);
   }
   .btn-emerald:hover {
     background-color: #5A7550;
-    box-shadow: 0 10px 25px rgba(110, 138, 98, 0.35);
-    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(110, 138, 98, 0.35);
+    transform: translateY(-1.5px);
   }
 
   /* Outlined warm taupe glass — secondary action */
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2.5
-           px-8 py-3.5 rounded-full font-sans text-sm font-semibold tracking-[0.08em] uppercase
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 min-h-[44px] rounded-full font-sans text-xs font-semibold tracking-[0.08em] uppercase
            transition-all duration-300
-           backdrop-blur-xl active:scale-95 cursor-pointer;
+           backdrop-blur-xl active:scale-95 cursor-pointer
+           focus:outline-none focus:ring-2 focus:ring-[#C8A46A]/50 focus:ring-offset-2;
     background-color: rgba(237, 229, 217, 0.7);
     color: #3B2A22;
     border: 1px solid #8B6A4F;
@@ -141,7 +144,24 @@
     background-color: #EDE5D9;
     color: #111111;
     border-color: #3B2A22;
-    transform: translateY(-2px);
+    transform: translateY(-1.5px);
+  }
+
+  /* Terracotta danger button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 min-h-[44px] rounded-full font-sans text-xs font-semibold tracking-[0.08em] uppercase
+           transition-all duration-300
+           active:scale-95 cursor-pointer text-white
+           focus:outline-none focus:ring-2 focus:ring-[#9B5C52]/50 focus:ring-offset-2;
+    background-color: #9B5C52;
+    color: #F4EFE7;
+    box-shadow: 0 4px 14px rgba(155, 92, 82, 0.25);
+  }
+  .btn-danger:hover {
+    background-color: #854B42;
+    box-shadow: 0 8px 20px rgba(155, 92, 82, 0.35);
+    transform: translateY(-1.5px);
   }
 
   /* Text-only ghost */
@@ -186,7 +206,7 @@
 
   /* ── Form Inputs with High-Contrast Placeholders ──────────── */
   .input-editorial {
-    @apply w-full text-base font-sans py-3.5 px-5 rounded-2xl
+    @apply w-full text-xs font-sans py-3 px-4 rounded-2xl
            focus:outline-none transition-all duration-200;
     background-color: #E7DED1;
     color: #3B2A22;
@@ -202,7 +222,7 @@
   }
 
   .input-box {
-    @apply w-full text-base font-sans px-5 py-3.5 rounded-2xl
+    @apply w-full text-xs font-sans px-4 py-3 rounded-2xl
            focus:outline-none transition-all duration-200;
     background-color: #E7DED1;
     color: #3B2A22;
@@ -232,12 +252,28 @@
     color: #8B7562;
   }
 
-  /* ── Badge ─────────────────────────────────────────────── */
+  /* ── Badges ─────────────────────────────────────────────── */
   .badge-count {
     @apply inline-flex items-center justify-center px-1.5 min-w-4 h-4
            text-[10px] font-extrabold rounded-full shadow-sm;
     background-color: #C8A46A;
     color: #F4EFE7;
+  }
+
+  .badge-status {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border;
+  }
+  .badge-status-verified, .badge-status-active, .badge-status-approved {
+    @apply bg-[#6E8A62]/15 text-[#6E8A62] border-[#6E8A62]/30;
+  }
+  .badge-status-pending, .badge-status-draft {
+    @apply bg-[#C8A46A]/20 text-[#8B6A4F] border-[#C8A46A]/40;
+  }
+  .badge-status-rejected, .badge-status-banned, .badge-status-removed {
+    @apply bg-[#9B5C52]/15 text-[#9B5C52] border-[#9B5C52]/30;
+  }
+  .badge-status-suspended, .badge-status-paused, .badge-status-sold {
+    @apply bg-stone-200 text-stone-700 border-stone-300;
   }
 
   /* Glassmorphic card container */

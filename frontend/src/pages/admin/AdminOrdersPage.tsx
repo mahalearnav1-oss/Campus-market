@@ -37,25 +37,39 @@ export const AdminOrdersPage: React.FC = () => {
             <table className="w-full text-left border-collapse font-sans text-xs">
               <thead>
                 <tr className="bg-[#E7DED1] border-b border-[#D6C8B8] text-[10px] font-semibold text-[#8B7562] uppercase tracking-wider">
-                  <th className="p-4 pl-6">Order Number</th>
-                  <th className="p-4">Buyer Account</th>
-                  <th className="p-4">Total Amount</th>
-                  <th className="p-4">Escrow Status</th>
-                  <th className="p-4">Date</th>
+                  <th className="py-4 px-6 text-left">Order Number</th>
+                  <th className="py-4 px-4 text-left">Buyer Account</th>
+                  <th className="py-4 px-4 text-left">Total Amount</th>
+                  <th className="py-4 px-4 text-center">Escrow Status</th>
+                  <th className="py-4 px-6 text-right">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D6C8B8]">
+              <tbody className="divide-y divide-[#D6C8B8]/60">
                 {orders.map((o) => (
                   <tr key={o.id} className="hover:bg-[#E7DED1]/50 transition-colors">
-                    <td className="p-4 pl-6 font-heading text-xl font-normal text-[#3B2A22]">#{o.orderNumber}</td>
-                    <td className="p-4 text-[#6E5948]">{o.buyer?.firstName} {o.buyer?.lastName}</td>
-                    <td className="p-4 font-heading text-xl font-normal text-[#3B2A22]">{formatINR(o.totalAmount)}</td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 rounded-full bg-[#6E8A62]/15 text-[#6E8A62] text-[10px] font-bold uppercase">
+                    <td className="py-4 px-6 align-middle font-mono font-medium text-xs text-[#3B2A22]">
+                      #{o.orderNumber}
+                    </td>
+                    <td className="py-4 px-4 align-middle text-xs font-semibold text-[#3B2A22]">
+                      {o.buyer?.firstName} {o.buyer?.lastName}
+                    </td>
+                    <td className="py-4 px-4 align-middle font-heading text-base font-medium text-[#3B2A22] whitespace-nowrap">
+                      {formatINR(o.totalAmount)}
+                    </td>
+                    <td className="py-4 px-4 align-middle text-center whitespace-nowrap">
+                      <span className={`badge-status ${
+                        o.status === 'COMPLETED' || o.status === 'CONFIRMED'
+                          ? 'badge-status-verified'
+                          : o.status === 'CANCELLED'
+                          ? 'badge-status-rejected'
+                          : 'badge-status-pending'
+                      }`}>
                         {o.status}
                       </span>
                     </td>
-                    <td className="p-4 text-[#8B7562]">{new Date(o.createdAt).toLocaleDateString('en-IN')}</td>
+                    <td className="py-4 px-6 align-middle text-right text-xs text-[#6E5948] whitespace-nowrap">
+                      {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
                   </tr>
                 ))}
               </tbody>

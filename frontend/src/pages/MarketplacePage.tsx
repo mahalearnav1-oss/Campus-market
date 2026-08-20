@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/client';
@@ -9,6 +9,8 @@ import { SortSelect } from '../components/discovery/SortSelect';
 import { ProductPagination } from '../components/discovery/ProductPagination';
 import { ActiveFilterChips } from '../components/discovery/ActiveFilterChips';
 import { useCampusStore } from '../stores/campusStore';
+import { useAuthStore } from '../stores/authStore';
+import { formatBranchShort } from '../lib/academicConstants';
 
 export interface CategoryData {
   id: string;
@@ -20,6 +22,7 @@ export interface CategoryData {
 export const MarketplacePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { activeCampus } = useCampusStore();
+  const { user } = useAuthStore();
 
   const queryQ = searchParams.get('q') || '';
   const queryCategory = searchParams.get('category') || '';
@@ -27,10 +30,15 @@ export const MarketplacePage: React.FC = () => {
   const queryMaxPrice = searchParams.get('maxPrice') || '';
   const queryConditions = searchParams.getAll('condition');
   const querySellerType = searchParams.get('sellerType') || '';
+  const queryBranch = searchParams.get('branch') || '';
+  const querySemester = searchParams.get('semester') || '';
+  const queryForYou = searchParams.get('forYou') === 'true';
   const querySort = searchParams.get('sort') || 'newest';
   const queryPage = parseInt(searchParams.get('page') || '1', 10);
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  const hasUserAcademicContext = Boolean(user && (user.course || user.semester));
 
   // Fetch Categories
   const { data: categories = [] } = useQuery<CategoryData[]>({
@@ -57,9 +65,14 @@ export const MarketplacePage: React.FC = () => {
       queryMaxPrice,
       queryConditions,
       querySellerType,
+      queryBranch,
+      querySemester,
+      queryForYou,
       querySort,
       queryPage,
       activeCampus?.id,
+      user?.course,
+      user?.semester,
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -69,6 +82,9 @@ export const MarketplacePage: React.FC = () => {
       if (queryMaxPrice) params.append('maxPrice', queryMaxPrice);
       queryConditions.forEach((c) => params.append('condition', c));
       if (querySellerType) params.append('sellerType', querySellerType);
+      if (queryBranch) params.append('branch', queryBranch);
+      if (querySemester) params.append('semester', querySemester);
+      if (queryForYou) params.append('forYou', 'true');
       if (querySort) params.append('sort', querySort);
       params.append('page', String(queryPage));
       params.append('limit', '12');
@@ -103,6 +119,17 @@ export const MarketplacePage: React.FC = () => {
     });
   };
 
+  const toggleForYou = () => {
+    updateParams((p) => {
+      if (queryForYou) {
+        p.delete('forYou');
+      } else {
+        p.set('forYou', 'true');
+      }
+      p.set('page', '1');
+    });
+  };
+
   const handleApplyFilters = (newFilters: FilterState) => {
     updateParams((p) => {
       if (newFilters.categoryId) p.set('category', newFilters.categoryId);
@@ -120,6 +147,12 @@ export const MarketplacePage: React.FC = () => {
       if (newFilters.sellerType) p.set('sellerType', newFilters.sellerType);
       else p.delete('sellerType');
 
+      if (newFilters.branch) p.set('branch', newFilters.branch);
+      else p.delete('branch');
+
+      if (newFilters.semester) p.set('semester', newFilters.semester);
+      else p.delete('semester');
+
       p.set('page', '1');
     });
   };
@@ -131,6 +164,9 @@ export const MarketplacePage: React.FC = () => {
       p.delete('maxPrice');
       p.delete('condition');
       p.delete('sellerType');
+      p.delete('branch');
+      p.delete('semester');
+      p.delete('forYou');
       p.set('page', '1');
     });
   };
@@ -141,6 +177,8 @@ export const MarketplacePage: React.FC = () => {
     maxPrice: queryMaxPrice,
     conditions: queryConditions,
     sellerType: querySellerType,
+    branch: queryBranch,
+    semester: querySemester,
   };
 
   const productsList = productsData?.products || [];
@@ -175,6 +213,37 @@ export const MarketplacePage: React.FC = () => {
           <div className="space-y-4 mb-6">
             <SearchBar initialValue={queryQ} onSearch={handleSearch} />
 
+            {/* Academic Personalization "For You" Toggle Pill */}
+            {hasUserAcademicContext && (
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={toggleForYou}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-sans font-semibold transition-all shadow-sm ${
+                    queryForYou
+                      ? 'bg-[#111111] text-[#F4EFE7] border-[#111111] shadow-md ring-2 ring-[#C8A46A]/40'
+                      : 'bg-[#E7DED1] text-[#3B2A22] border-[#D6C8B8] hover:border-[#C8A46A] hover:bg-[#EDE5D9]'
+                  }`}
+                >
+                  <span>🎓</span>
+                  <span>
+                    For You
+                    {user?.course ? ` · ${formatBranchShort(user.course)}` : ''}
+                    {user?.semester ? ` · Sem ${user.semester}` : ''}
+                  </span>
+                  {queryForYou && (
+                    <span className="w-2 h-2 rounded-full bg-[#6E8A62] animate-pulse" />
+                  )}
+                </button>
+
+                {queryForYou && (
+                  <span className="text-[11px] font-sans text-[#8B7562] italic">
+                    Prioritizing courseware matching your academic context
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-4 pt-2">
               <button
                 onClick={() => setIsMobileFilterOpen(true)}
@@ -205,6 +274,8 @@ export const MarketplacePage: React.FC = () => {
                 p.set('page', '1');
               })}
               onRemoveSellerType={() => updateParams((p) => { p.delete('sellerType'); p.set('page', '1'); })}
+              onRemoveBranch={() => updateParams((p) => { p.delete('branch'); p.set('page', '1'); })}
+              onRemoveSemester={() => updateParams((p) => { p.delete('semester'); p.set('page', '1'); })}
               onClearAll={handleClearFilters}
             />
           </div>

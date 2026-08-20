@@ -7,6 +7,8 @@ export const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address').toLowerCase().trim(),
   password: z.string().min(4, 'Password must be at least 4 characters'),
   collegeId: z.string().uuid('Please select a valid campus').optional().nullable(),
+  course: z.string().trim().max(100, 'Branch / course cannot exceed 100 characters').optional().nullable(),
+  semester: z.coerce.number().int().min(1, 'Semester must be between 1 and 12').max(12, 'Semester must be between 1 and 12').optional().nullable(),
   role: z
     .nativeEnum(UserRole)
     .refine((val) => val !== UserRole.ADMIN && val !== UserRole.SUPER_ADMIN, {
@@ -28,6 +30,8 @@ export const updateProfileSchema = z.object({
   phone: z.string().max(20).optional().nullable(),
   avatarUrl: z.string().url('Please provide a valid image URL').optional().nullable(),
   collegeId: z.string().uuid('Please select a valid campus').optional().nullable(),
+  course: z.string().trim().max(100, 'Branch / course cannot exceed 100 characters').optional().nullable(),
+  semester: z.coerce.number().int().min(1, 'Semester must be between 1 and 12').max(12, 'Semester must be between 1 and 12').optional().nullable(),
 });
 
 export const changePasswordSchema = z.object({

@@ -1,9 +1,10 @@
 import { z } from 'zod';
-import { FulfillmentMode, OrderStatus } from '@prisma/client';
+import { FulfillmentMode, OrderStatus, PaymentMethod } from '@prisma/client';
 
 export const createOrderSchema = z.object({
   shippingAddressId: z.string().uuid('Invalid shipping address ID'),
   fulfillmentMode: z.nativeEnum(FulfillmentMode).optional().default(FulfillmentMode.CAMPUS_MEETUP),
+  paymentMethod: z.nativeEnum(PaymentMethod).optional().default(PaymentMethod.UPI),
 });
 
 export const cancelOrderSchema = z.object({

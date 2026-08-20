@@ -132,6 +132,23 @@ export const NotificationsPage: React.FC = () => {
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
         );
+      case 'PRICE_DROP':
+        return (
+          <div className="w-5 h-5 rounded-full bg-[#C8A46A]/20 text-[#3B2A22] flex items-center justify-center font-bold text-xs">
+            ₹↓
+          </div>
+        );
+      case 'BACK_IN_STOCK':
+        return (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#6E8A62]">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+            <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
+            <polyline points="7.5 19.79 7.5 14.6 3 12" />
+            <polyline points="21 12 16.5 14.6 16.5 19.79" />
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+            <line x1="12" y1="22.08" x2="12" y2="12" />
+          </svg>
+        );
       default:
         return (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -249,8 +266,9 @@ export const NotificationsPage: React.FC = () => {
 
                   <button
                     onClick={(e) => handleDeleteNotification(n.id, e)}
-                    className="text-[#8B7562] hover:text-[#9B5C52] p-1 transition-colors text-xs"
+                    className="w-7 h-7 rounded-full text-[#8B7562] hover:text-[#9B5C52] hover:bg-[#9B5C52]/10 flex items-center justify-center transition-colors text-xs shrink-0 cursor-pointer"
                     title="Delete notification"
+                    aria-label="Delete notification"
                   >
                     ✕
                   </button>

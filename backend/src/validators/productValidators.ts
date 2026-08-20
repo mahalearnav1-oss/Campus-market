@@ -21,6 +21,8 @@ export const createProductSchema = z.object({
   originalMsrp: z.number().positive().optional().nullable(),
   quantity: z.number().int().min(1, 'Quantity must be at least 1').optional().default(1),
   allowedFulfillments: z.string().optional().default('CAMPUS_MEETUP,COURIER_SHIPPING'),
+  targetBranch: z.string().trim().max(100, 'Target branch cannot exceed 100 characters').optional().nullable(),
+  targetSemester: z.coerce.number().int().min(1, 'Target semester must be between 1 and 12').max(12, 'Target semester must be between 1 and 12').optional().nullable(),
   bookDetails: bookDetailsSchema.optional().nullable(),
   images: z.array(z.object({
     imageUrl: z.string().trim().min(1, 'Image URL is required'),
@@ -45,6 +47,9 @@ export const productDiscoveryQuerySchema = z.object({
   sellerType: z.nativeEnum(SellerType).optional(),
   collegeId: z.string().optional(),
   campusId: z.string().optional(),
+  branch: z.string().trim().optional(),
+  semester: z.coerce.number().int().min(1).max(12).optional(),
+  forYou: z.coerce.boolean().optional(),
   availableOnly: z.coerce.boolean().optional().default(true),
   sort: z.enum(['newest', 'oldest', 'price_asc', 'price_desc', 'recently_updated']).optional().default('newest'),
   page: z.coerce.number().int().min(1).optional().default(1),

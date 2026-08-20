@@ -17,7 +17,10 @@ export interface UserContext {
   status: UserStatus;
   isStudentVerified: boolean;
   collegeId?: string | null;
+  course?: string | null;
+  semester?: number | null;
   sellerId?: string | null;
+  sellerStatus?: string | null;
 }
 
 export interface SafeUserResponse {
@@ -32,7 +35,10 @@ export interface SafeUserResponse {
   status: UserStatus;
   isStudentVerified: boolean;
   collegeId?: string | null;
+  course?: string | null;
+  semester?: number | null;
   college?: { id: string; name: string; code: string; city?: string; state?: string } | null;
   sellerId?: string | null;
+  sellerStatus?: string | null;
   createdAt: Date;
 }

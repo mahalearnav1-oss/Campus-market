@@ -30,6 +30,8 @@ export class UserRepository {
     lastName: string;
     role?: UserRole;
     collegeId?: string | null;
+    course?: string | null;
+    semester?: number | null;
   }) {
     return prisma.$transaction(async (tx) => {
       let targetCollegeId = data.collegeId;
@@ -63,6 +65,8 @@ export class UserRepository {
           status: UserStatus.ACTIVE,
           isStudentVerified: true,
           collegeId: targetCollegeId,
+          course: data.course || null,
+          semester: data.semester || null,
           cart: { create: {} },
           wishlist: { create: {} },
           preferences: { create: {} },
@@ -71,7 +75,7 @@ export class UserRepository {
               create: {
                 sellerType: data.role === UserRole.COMMERCIAL_BOOKSTORE ? SellerType.COMMERCIAL_BOOKSTORE : SellerType.STUDENT,
                 storeName: `${data.firstName}'s Campus Store`,
-                status: SellerStatus.VERIFIED,
+                status: SellerStatus.PENDING,
                 wallet: {
                   create: {
                     clearedBalance: 0.00,
@@ -82,7 +86,7 @@ export class UserRepository {
                   create: {
                     documentType: 'Student ID',
                     documentUrl: 'https://campusmarket.internal/docs/student_id.pdf',
-                    status: SellerStatus.VERIFIED,
+                    status: SellerStatus.PENDING,
                   },
                 },
               },
@@ -90,7 +94,7 @@ export class UserRepository {
           } : {}),
         },
         include: {
-          seller: { select: { id: true } },
+          seller: { select: { id: true, status: true, storeName: true } },
           college: { select: { id: true, name: true, code: true, city: true, state: true } },
         },
       });
@@ -105,6 +109,8 @@ export class UserRepository {
     phone?: string | null;
     avatarUrl?: string | null;
     collegeId?: string | null;
+    course?: string | null;
+    semester?: number | null;
   }) {
     return prisma.user.update({
       where: { id },
@@ -115,6 +121,8 @@ export class UserRepository {
         ...(data.phone !== undefined ? { phone: data.phone } : {}),
         ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
         ...(data.collegeId !== undefined ? { collegeId: data.collegeId } : {}),
+        ...(data.course !== undefined ? { course: data.course } : {}),
+        ...(data.semester !== undefined ? { semester: data.semester } : {}),
       },
       include: {
         college: { select: { id: true, name: true, code: true, city: true, state: true } },

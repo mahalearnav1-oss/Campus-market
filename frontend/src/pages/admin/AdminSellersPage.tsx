@@ -9,7 +9,14 @@ export interface AdminSellerItem {
   rating: string | number;
   totalSalesCount: number;
   createdAt: string;
-  user: { id: string; email: string; firstName: string; lastName: string };
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    createdAt?: string;
+    college?: { id: string; name: string; code: string } | null;
+  };
 }
 
 export const AdminSellersPage: React.FC = () => {
@@ -17,6 +24,7 @@ export const AdminSellersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const fetchSellers = async () => {
     try {
@@ -36,13 +44,20 @@ export const AdminSellersPage: React.FC = () => {
 
   const handleVerifySeller = async (sellerId: string, status: 'VERIFIED' | 'REJECTED') => {
     try {
+      setError(null);
       await apiClient.post(`/admin/sellers/${sellerId}/verify`, {
         status,
-        notes: `Seller verification status set to ${status}`,
+        notes: status === 'VERIFIED' ? 'Storefront approved by administrator.' : 'Verification requirements not met.',
       });
+      setActionMessage(
+        status === 'VERIFIED'
+          ? '✅ Seller approved successfully! Seller can now list and publish products.'
+          : '❌ Seller application marked as rejected.'
+      );
+      setTimeout(() => setActionMessage(null), 4000);
       setSellers((prev) => prev.filter((s) => s.id !== sellerId));
     } catch (err: any) {
-      alert(err.message || 'Failed to update seller verification status.');
+      setError(err.message || 'Failed to update seller verification status.');
     }
   };
 
@@ -52,8 +67,14 @@ export const AdminSellersPage: React.FC = () => {
       <div>
         <span className="tag-editorial mb-2 block">Seller Moderation</span>
         <h1 className="font-heading text-4xl font-normal text-[#3B2A22]">Storefront Verification</h1>
-        <p className="font-sans text-xs text-[#8B7562] mt-1">Approve or reject pending campus seller applications and inspect store credentials</p>
+        <p className="font-sans text-xs text-[#8B7562] mt-1">Review campus seller storefront applications, verify identity documents, and approve active selling status</p>
       </div>
+
+      {actionMessage && (
+        <div className="p-4 bg-[#6E8A62]/15 border border-[#6E8A62]/30 text-[#6E8A62] font-semibold text-xs rounded-2xl">
+          {actionMessage}
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-[#9B5C52]/15 border border-[#9B5C52]/30 text-[#9B5C52] font-semibold text-xs rounded-2xl">
@@ -62,14 +83,14 @@ export const AdminSellersPage: React.FC = () => {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 bg-[#E7DED1] p-3 rounded-2xl border border-[#D6C8B8]">
+      <div className="flex items-center gap-2 bg-[#E7DED1] p-2.5 rounded-2xl border border-[#D6C8B8]">
         {['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'].map((st) => (
           <button
             key={st}
             onClick={() => setStatusFilter(st)}
-            className={`px-4 py-2 rounded-xl text-xs font-sans font-semibold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-sans font-semibold tracking-wide transition-all ${
               statusFilter === st
-                ? 'bg-[#111111] text-[#F4EFE7]'
+                ? 'bg-[#111111] text-[#F4EFE7] shadow-sm'
                 : 'bg-[#EDE5D9] text-[#6E5948] hover:text-[#3B2A22]'
             }`}
           >
@@ -89,7 +110,7 @@ export const AdminSellersPage: React.FC = () => {
             </svg>
           </div>
           <h3 className="font-heading text-3xl font-normal text-[#3B2A22]">No Sellers in {statusFilter} Queue</h3>
-          <p className="font-sans text-xs text-[#8B7562]">No seller requests matching this queue filter.</p>
+          <p className="font-sans text-xs text-[#8B7562]">No storefront applications matching this queue filter.</p>
         </div>
       ) : (
         <div className="bg-[#EDE5D9] border border-[#D6C8B8] rounded-[32px] overflow-hidden shadow-warm-subtle">
@@ -97,40 +118,60 @@ export const AdminSellersPage: React.FC = () => {
             <table className="w-full text-left border-collapse font-sans text-xs">
               <thead>
                 <tr className="bg-[#E7DED1] border-b border-[#D6C8B8] text-[10px] font-semibold text-[#8B7562] uppercase tracking-wider">
-                  <th className="p-4 pl-6">Storefront Name</th>
-                  <th className="p-4">Owner Account</th>
-                  <th className="p-4">Seller Type</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4 pr-6 text-right">Verification Action</th>
+                  <th className="py-4 px-6 text-left">Storefront Name</th>
+                  <th className="py-4 px-4 text-left">Owner Account</th>
+                  <th className="py-4 px-4 text-left">Campus / College</th>
+                  <th className="py-4 px-4 text-left">Registered</th>
+                  <th className="py-4 px-4 text-center">Status</th>
+                  <th className="py-4 px-6 text-right">Verification Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#D6C8B8]">
+              <tbody className="divide-y divide-[#D6C8B8]/60">
                 {sellers.map((s) => (
                   <tr key={s.id} className="hover:bg-[#E7DED1]/50 transition-colors">
-                    <td className="p-4 pl-6 font-heading text-xl font-normal text-[#3B2A22]">{s.storeName}</td>
-                    <td className="p-4">
-                      <div className="font-semibold text-[#3B2A22]">{s.user.firstName} {s.user.lastName}</div>
-                      <div className="text-[11px] text-[#8B7562]">{s.user.email}</div>
+                    <td className="py-4.5 px-6 align-middle">
+                      <div className="font-heading text-lg font-medium text-[#3B2A22] leading-snug">{s.storeName}</div>
+                      <span className="text-[10px] text-[#8B7562] font-semibold uppercase tracking-wider">{s.sellerType}</span>
                     </td>
-                    <td className="p-4 text-[#6E5948] font-medium">{s.sellerType}</td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-1 rounded-full bg-[#C8A46A]/20 text-[#3B2A22] border border-[#C8A46A]/40 text-[10px] font-bold">
-                        ⏳ {s.status}
+                    <td className="py-4.5 px-4 align-middle">
+                      <div className="font-semibold text-xs text-[#3B2A22]">{s.user.firstName} {s.user.lastName}</div>
+                      <div className="text-[11px] text-[#8B7562] font-mono mt-0.5">{s.user.email}</div>
+                    </td>
+                    <td className="py-4.5 px-4 align-middle">
+                      <div className="font-medium text-xs text-[#3B2A22]">{s.user.college?.name || 'General Campus'}</div>
+                      <div className="text-[10px] text-[#8B7562] uppercase tracking-wider font-semibold">{s.user.college?.code || 'MAIN'}</div>
+                    </td>
+                    <td className="py-4.5 px-4 align-middle text-[#6E5948] text-xs whitespace-nowrap">
+                      {new Date(s.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="py-4.5 px-4 align-middle text-center whitespace-nowrap">
+                      <span className={`badge-status ${
+                        s.status === 'VERIFIED'
+                          ? 'badge-status-verified'
+                          : s.status === 'REJECTED'
+                          ? 'badge-status-rejected'
+                          : 'badge-status-pending'
+                      }`}>
+                        {s.status === 'VERIFIED' ? '✓ APPROVED' : s.status === 'REJECTED' ? '✕ REJECTED' : '⏳ PENDING'}
                       </span>
                     </td>
-                    <td className="p-4 pr-6 text-right space-x-2">
-                      <button
-                        onClick={() => handleVerifySeller(s.id, 'VERIFIED')}
-                        className="btn-emerald text-[10px] !py-1.5 !px-3"
-                      >
-                        Approve Seller
-                      </button>
-                      <button
-                        onClick={() => handleVerifySeller(s.id, 'REJECTED')}
-                        className="btn-ghost text-[10px] text-[#9B5C52] hover:text-[#3B2A22]"
-                      >
-                        Reject
-                      </button>
+                    <td className="py-4.5 px-6 align-middle text-right whitespace-nowrap space-x-2">
+                      {s.status !== 'VERIFIED' && (
+                        <button
+                          onClick={() => handleVerifySeller(s.id, 'VERIFIED')}
+                          className="btn-emerald text-[11px] !py-2 !px-4 !min-h-[34px] shadow-sm hover:shadow"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {s.status !== 'REJECTED' && (
+                        <button
+                          onClick={() => handleVerifySeller(s.id, 'REJECTED')}
+                          className="px-3.5 py-1.5 min-h-[34px] rounded-full border border-[#9B5C52]/40 text-[#9B5C52] hover:bg-[#9B5C52]/10 text-[11px] font-semibold transition-colors cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

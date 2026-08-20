@@ -17,7 +17,7 @@ import {
   CreateCampusInput,
   UpdateCampusInput,
 } from '../validators/adminValidators';
-import { UserStatus, SellerStatus, ProductStatus, ReportStatus, DisputeStatus, NotificationType } from '@prisma/client';
+import { UserStatus, SellerStatus, ProductStatus, ReportStatus, DisputeStatus, NotificationType, OrderStatus, EscrowStatus } from '@prisma/client';
 
 export class AdminService {
   async getDashboardAnalytics() {
@@ -49,6 +49,16 @@ export class AdminService {
       include: { user: true },
     });
 
+    // Update associated verification records
+    await prisma.sellerVerification.updateMany({
+      where: { sellerId },
+      data: {
+        status: input.status as SellerStatus,
+        verifiedAt: input.status === 'VERIFIED' ? new Date() : null,
+        rejectionReason: input.status === 'REJECTED' ? input.notes || 'Requirements not met' : null,
+      },
+    });
+
     await logAuditEvent('SELLER_VERIFICATION_UPDATED', 'Seller', adminUserId, sellerId, { status: input.status, notes: input.notes }, ipAddress);
 
     // Notify seller
@@ -63,7 +73,7 @@ export class AdminService {
       type: notifType,
       title,
       body,
-      actionUrl: '/seller',
+      actionUrl: '/seller/products',
     });
 
     return seller;
@@ -261,6 +271,47 @@ export class AdminService {
   }
 
   async createReport(reporterUserId: string, input: CreateReportInput, ipAddress?: string) {
+    // Validate target existence
+    if (input.targetType === 'PRODUCT') {
+      const product = await prisma.product.findUnique({ where: { id: input.targetId } });
+      if (!product) {
+        const error: any = new Error('Reported product does not exist.');
+        error.statusCode = 404;
+        error.code = 'PRODUCT_NOT_FOUND';
+        throw error;
+      }
+    } else if (input.targetType === 'SELLER') {
+      const seller = await prisma.seller.findUnique({ where: { id: input.targetId } });
+      if (!seller) {
+        const error: any = new Error('Reported seller does not exist.');
+        error.statusCode = 404;
+        error.code = 'SELLER_NOT_FOUND';
+        throw error;
+      }
+    } else if (input.targetType === 'USER') {
+      const user = await prisma.user.findUnique({ where: { id: input.targetId } });
+      if (!user) {
+        const error: any = new Error('Reported user does not exist.');
+        error.statusCode = 404;
+        error.code = 'USER_NOT_FOUND';
+        throw error;
+      }
+    }
+
+    // Duplicate report prevention (check if user already has an active pending report for this target)
+    const existingReport = await prisma.report.findFirst({
+      where: {
+        reporterUserId,
+        targetType: input.targetType,
+        targetId: input.targetId,
+        status: { in: [ReportStatus.PENDING, ReportStatus.UNDER_REVIEW] },
+      },
+    });
+
+    if (existingReport) {
+      return existingReport;
+    }
+
     const report = await prisma.report.create({
       data: {
         reporterUserId,
@@ -277,7 +328,40 @@ export class AdminService {
   }
 
   async getReports(page: number = 1, limit: number = 20, status?: ReportStatus) {
-    return adminRepository.getReports({ page, limit, status });
+    const data = await adminRepository.getReports({ page, limit, status });
+
+    // Enrich reports with target titles / details
+    const enrichedReports = await Promise.all(
+      data.reports.map(async (r: any) => {
+        let targetDetails: any = null;
+        try {
+          if (r.targetType === 'PRODUCT') {
+            const p = await prisma.product.findUnique({
+              where: { id: r.targetId },
+              select: { id: true, title: true, price: true, status: true },
+            });
+            targetDetails = p ? { title: p.title, price: p.price, status: p.status } : null;
+          } else if (r.targetType === 'SELLER') {
+            const s = await prisma.seller.findUnique({
+              where: { id: r.targetId },
+              select: { id: true, storeName: true, status: true },
+            });
+            targetDetails = s ? { storeName: s.storeName, status: s.status } : null;
+          } else if (r.targetType === 'USER') {
+            const u = await prisma.user.findUnique({
+              where: { id: r.targetId },
+              select: { id: true, firstName: true, lastName: true, email: true },
+            });
+            targetDetails = u ? { name: `${u.firstName} ${u.lastName}`, email: u.email } : null;
+          }
+        } catch {
+          // Ignore
+        }
+        return { ...r, targetDetails };
+      })
+    );
+
+    return { reports: enrichedReports, pagination: data.pagination };
   }
 
   async resolveReport(adminUserId: string, reportId: string, input: ResolveReportInput, ipAddress?: string) {
@@ -304,7 +388,14 @@ export class AdminService {
   }
 
   async createDispute(userId: string, input: CreateDisputeInput, ipAddress?: string) {
-    const order = await prisma.order.findUnique({ where: { id: input.orderId } });
+    const order = await prisma.order.findUnique({
+      where: { id: input.orderId },
+      include: {
+        seller: { select: { id: true, userId: true, storeName: true } },
+        buyer: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
     if (!order) {
       const error: any = new Error('Order not found.');
       error.statusCode = 404;
@@ -312,9 +403,26 @@ export class AdminService {
       throw error;
     }
 
+    // Security Check: Only buyer or seller involved in the order can open a dispute
+    if (order.buyerId !== userId && order.seller.userId !== userId) {
+      const error: any = new Error('You are not authorized to create a dispute for this order.');
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN_DISPUTE';
+      throw error;
+    }
+
+    // Lifecycle Check: Order cannot be in PAYMENT_PENDING or CANCELLED
+    if (order.status === OrderStatus.PAYMENT_PENDING || order.status === OrderStatus.CANCELLED) {
+      const error: any = new Error(`Cannot dispute an order with status ${order.status}.`);
+      error.statusCode = 400;
+      error.code = 'ORDER_INELIGIBLE_FOR_DISPUTE';
+      throw error;
+    }
+
+    // Duplicate Prevention Check
     const existingDispute = await prisma.dispute.findUnique({ where: { orderId: input.orderId } });
-    if (existingDispute) {
-      const error: any = new Error('A dispute is already active for this order.');
+    if (existingDispute && (existingDispute.status === DisputeStatus.OPENED || existingDispute.status === DisputeStatus.UNDER_REVIEW)) {
+      const error: any = new Error('An active dispute is already pending for this order.');
       error.statusCode = 409;
       error.code = 'DUPLICATE_DISPUTE';
       throw error;
@@ -326,9 +434,43 @@ export class AdminService {
         initiatorUserId: userId,
         reason: input.reason,
         explanation: input.explanation,
+        proofImageUrls: input.proofImageUrls && input.proofImageUrls.length > 0 ? (input.proofImageUrls as any) : undefined,
         status: DisputeStatus.OPENED,
       },
     });
+
+    // Update order status to DISPUTED and record history
+    await prisma.order.update({
+      where: { id: input.orderId },
+      data: { status: OrderStatus.DISPUTED },
+    });
+
+    await prisma.orderStatusHistory.create({
+      data: {
+        orderId: input.orderId,
+        previousStatus: order.status,
+        newStatus: OrderStatus.DISPUTED,
+        changedByUserId: userId,
+        reason: `Dispute opened (${input.reason}): ${input.explanation.slice(0, 200)}`,
+      },
+    });
+
+    // In-app Notification to counterparty
+    const counterpartyUserId = order.buyerId === userId ? order.seller.userId : order.buyerId;
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: counterpartyUserId,
+          type: NotificationType.SYSTEM,
+          title: `⚠️ Order #${order.orderNumber} Disputed`,
+          body: `A dispute has been submitted for Order #${order.orderNumber} regarding "${input.reason.replace(/_/g, ' ')}". Campus escrow is temporarily frozen while administrators review.`,
+          actionUrl: `/orders/${order.orderNumber}`,
+          data: { orderId: order.id, disputeId: dispute.id },
+        },
+      });
+    } catch {
+      // Non-blocking notification
+    }
 
     await logAuditEvent('DISPUTE_OPENED', 'Dispute', userId, dispute.id, { orderId: input.orderId }, ipAddress);
     return dispute;
@@ -339,7 +481,18 @@ export class AdminService {
   }
 
   async resolveDispute(adminUserId: string, disputeId: string, input: ResolveDisputeInput, ipAddress?: string) {
-    const dispute = await prisma.dispute.findUnique({ where: { id: disputeId } });
+    const dispute = await prisma.dispute.findUnique({
+      where: { id: disputeId },
+      include: {
+        order: {
+          include: {
+            buyer: true,
+            seller: { select: { id: true, userId: true, storeName: true } },
+            escrowLedger: true,
+          },
+        },
+      },
+    });
 
     if (!dispute) {
       const error: any = new Error('Dispute not found.');
@@ -348,16 +501,107 @@ export class AdminService {
       throw error;
     }
 
+    let targetDisputeStatus: DisputeStatus;
+    let targetOrderStatus: OrderStatus | null = null;
+    let targetEscrowStatus: EscrowStatus | null = null;
+
+    if (input.status === 'RESOLVED_BUYER_REFUND' || input.status === 'RESOLVED') {
+      targetDisputeStatus = DisputeStatus.RESOLVED_BUYER_REFUND;
+      targetOrderStatus = OrderStatus.REFUNDED;
+      targetEscrowStatus = EscrowStatus.REFUNDED;
+    } else if (input.status === 'RESOLVED_SELLER_PAYOUT') {
+      targetDisputeStatus = DisputeStatus.RESOLVED_SELLER_PAYOUT;
+      targetOrderStatus = OrderStatus.COMPLETED;
+      targetEscrowStatus = EscrowStatus.RELEASED;
+    } else if (input.status === 'UNDER_REVIEW') {
+      targetDisputeStatus = DisputeStatus.UNDER_REVIEW;
+    } else {
+      targetDisputeStatus = DisputeStatus.REJECTED;
+      targetOrderStatus = OrderStatus.COMPLETED;
+    }
+
     const updated = await prisma.dispute.update({
       where: { id: disputeId },
       data: {
-        status: input.status as DisputeStatus,
+        status: targetDisputeStatus,
         resolutionNotes: input.resolutionNotes || null,
-        resolvedAt: new Date(),
+        resolvedAt: targetDisputeStatus !== DisputeStatus.UNDER_REVIEW ? new Date() : null,
       },
     });
 
-    await logAuditEvent('DISPUTE_RESOLVED', 'Dispute', adminUserId, disputeId, { status: input.status }, ipAddress);
+    // Update order status if resolving
+    if (targetOrderStatus) {
+      await prisma.order.update({
+        where: { id: dispute.orderId },
+        data: {
+          status: targetOrderStatus,
+          completedAt: targetOrderStatus === OrderStatus.COMPLETED ? new Date() : undefined,
+        },
+      });
+
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: dispute.orderId,
+          previousStatus: OrderStatus.DISPUTED,
+          newStatus: targetOrderStatus,
+          changedByUserId: adminUserId,
+          reason: `Dispute resolved by admin: ${targetDisputeStatus}. Notes: ${input.resolutionNotes || 'None'}`,
+        },
+      });
+    }
+
+    // Update escrow ledger if applicable
+    if (targetEscrowStatus && dispute.order.escrowLedger) {
+      await prisma.escrowLedger.update({
+        where: { orderId: dispute.orderId },
+        data: {
+          status: targetEscrowStatus,
+          releasedAt: targetEscrowStatus === EscrowStatus.RELEASED ? new Date() : undefined,
+        },
+      });
+    }
+
+    // Notify Buyer and Seller of resolution
+    try {
+      const resolutionTitle =
+        targetDisputeStatus === DisputeStatus.RESOLVED_BUYER_REFUND
+          ? `✓ Dispute Resolved: Refund Approved (#${dispute.order.orderNumber})`
+          : targetDisputeStatus === DisputeStatus.RESOLVED_SELLER_PAYOUT
+          ? `✓ Dispute Resolved: Payout Released (#${dispute.order.orderNumber})`
+          : `Dispute Decision for Order #${dispute.order.orderNumber}`;
+
+      const resolutionBody =
+        targetDisputeStatus === DisputeStatus.RESOLVED_BUYER_REFUND
+          ? `The escrow dispute for Order #${dispute.order.orderNumber} was resolved with a full refund to the buyer. ${input.resolutionNotes ? `Notes: ${input.resolutionNotes}` : ''}`
+          : targetDisputeStatus === DisputeStatus.RESOLVED_SELLER_PAYOUT
+          ? `The escrow dispute for Order #${dispute.order.orderNumber} was resolved with funds released to the seller. ${input.resolutionNotes ? `Notes: ${input.resolutionNotes}` : ''}`
+          : `The dispute for Order #${dispute.order.orderNumber} was rejected by administration. ${input.resolutionNotes ? `Notes: ${input.resolutionNotes}` : ''}`;
+
+      await Promise.all([
+        prisma.notification.create({
+          data: {
+            userId: dispute.order.buyerId,
+            type: NotificationType.SYSTEM,
+            title: resolutionTitle,
+            body: resolutionBody,
+            actionUrl: `/orders/${dispute.order.orderNumber}`,
+          },
+        }),
+        prisma.notification.create({
+          data: {
+            userId: dispute.order.seller.userId,
+            type: NotificationType.SYSTEM,
+            title: resolutionTitle,
+            body: resolutionBody,
+            actionUrl: `/orders/${dispute.order.orderNumber}`,
+          },
+        }),
+      ]);
+    } catch {
+      // Non-blocking
+    }
+
+    await logAuditEvent('DISPUTE_RESOLVED', 'Dispute', adminUserId, disputeId, { status: targetDisputeStatus }, ipAddress);
     return updated;
   }
 

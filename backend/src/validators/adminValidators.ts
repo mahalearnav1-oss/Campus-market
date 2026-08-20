@@ -42,13 +42,20 @@ export const resolveReportSchema = z.object({
 });
 
 export const createDisputeSchema = z.object({
-  orderId: z.string().uuid('Invalid order ID'),
+  orderId: z.string().min(1, 'Order ID is required'),
   reason: z.nativeEnum(DisputeReason),
   explanation: z.string().trim().min(10, 'Dispute explanation must be at least 10 characters'),
+  proofImageUrls: z.array(z.string()).optional(),
 });
 
 export const resolveDisputeSchema = z.object({
-  status: z.enum(['RESOLVED', 'REJECTED']),
+  status: z.enum([
+    'RESOLVED',
+    'REJECTED',
+    'RESOLVED_BUYER_REFUND',
+    'RESOLVED_SELLER_PAYOUT',
+    'UNDER_REVIEW',
+  ]),
   resolutionNotes: z.string().trim().optional(),
 });
 

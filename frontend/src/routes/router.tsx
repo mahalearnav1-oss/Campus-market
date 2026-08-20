@@ -19,6 +19,7 @@ import { CreateProductPage } from '../pages/seller/CreateProductPage';
 import { EditProductPage } from '../pages/seller/EditProductPage';
 import { CartPage } from '../pages/CartPage';
 import { WishlistPage } from '../pages/WishlistPage';
+import { PriceAlertsPage } from '../pages/PriceAlertsPage';
 import { CheckoutPage } from '../pages/CheckoutPage';
 import { BuyerOrdersPage } from '../pages/BuyerOrdersPage';
 import { OrderDetailPage } from '../pages/OrderDetailPage';
@@ -102,6 +103,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireAuth>
             <WishlistPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'price-alerts',
+        element: (
+          <RequireAuth>
+            <PriceAlertsPage />
           </RequireAuth>
         ),
       },

@@ -51,8 +51,11 @@ export class AuthService {
       status: user.status,
       isStudentVerified: user.isStudentVerified,
       collegeId: user.collegeId,
+      course: user.course,
+      semester: user.semester,
       college: (user as any).college || null,
       sellerId: user.seller?.id || null,
+      sellerStatus: user.seller?.status || null,
       createdAt: user.createdAt,
     };
 
@@ -114,8 +117,11 @@ export class AuthService {
       status: user.status,
       isStudentVerified: user.isStudentVerified,
       collegeId: user.collegeId,
+      course: user.course,
+      semester: user.semester,
       college: (user as any).college || null,
       sellerId: user.seller?.id || null,
+      sellerStatus: user.seller?.status || null,
       createdAt: user.createdAt,
     };
 
@@ -194,8 +200,11 @@ export class AuthService {
       status: user.status,
       isStudentVerified: user.isStudentVerified,
       collegeId: user.collegeId,
+      course: user.course,
+      semester: user.semester,
       college: user.college || null,
       sellerId: user.seller?.id || null,
+      sellerStatus: user.seller?.status || null,
       createdAt: user.createdAt,
     };
 

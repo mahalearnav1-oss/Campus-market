@@ -1,0 +1,336 @@
+6.1 INTRODUCTION
+
+CampusMarket is a high-trust, student-focused secondhand educational marketplace platform designed for collegiate ecosystems. The primary purpose of the application is to enable university students and verified campus bookstores to buy and sell pre-owned course textbooks, scientific calculators, laboratory tools, engineering electronics, and study guides. By restricting transactions to authenticated collegiate domains and providing an escrow payment protection system with on-campus safe-zone meetups, the platform addresses the trust and safety challenges inherent in general-purpose classifieds.
+
+The application is implemented as a TypeScript monorepo structured into three distinct workspaces:
+1. frontend: A single-page web application constructed with React 18, TypeScript, Vite, Tailwind CSS, TanStack React Query v5, Zustand, and React Router v6.
+2. backend: A RESTful API and WebSocket application server built with Node.js, Express.js, TypeScript, Prisma ORM, and Socket.IO.
+3. shared: A shared type library defining common data transfer objects, request/response envelopes, and status enumerations.
+
+Data persistence is managed by a MySQL 8.0 relational database structured in Third Normal Form (3NF) and accessed via Prisma ORM. Real-time bi-directional communication is facilitated by Socket.IO over authenticated WebSockets. Financial transactions are processed through Razorpay using Indian Rupees (INR / ₹) with HMAC-SHA256 signature verification and a two-phase escrow release ledger. The platform also integrates academic curriculum personalization ("For You" discovery mode), smart price-drop and restock alerts, role-based access control (RBAC), and security audit logging.
+
+________________________________________
+
+6.2 FRONTEND APPLICATION CODE
+
+The frontend architecture of CampusMarket is built using React 18 with TypeScript. Application routing is configured in frontend/src/routes/router.tsx using React Router v6. The routing structure organizes pages into public, authenticated buyer, seller, account, and administrative layouts.
+
+The primary layouts and page components located in frontend/src/pages/ include:
+• Public and Discovery Pages: HomePage.tsx, MarketplacePage.tsx, ProductDetailPage.tsx, PublicSellerPage.tsx, LoginPage.tsx, and RegisterPage.tsx.
+• Buyer and Commerce Pages: CartPage.tsx, WishlistPage.tsx, PriceAlertsPage.tsx, CheckoutPage.tsx, BuyerOrdersPage.tsx, OrderDetailPage.tsx, OrderTrackingPage.tsx, PaymentSuccessPage.tsx, and PaymentFailedPage.tsx.
+• Communication and Account Pages: ConversationsPage.tsx, ChatThreadPage.tsx, NotificationsPage.tsx, AccountPage.tsx, ProfileTab.tsx, PreferencesTab.tsx, and AddressesTab.tsx.
+• Seller Management Pages: SellerDashboardPage.tsx, SellerProductsPage.tsx, CreateProductPage.tsx, EditProductPage.tsx, SellerOrdersPage.tsx, and BecomeSellerPage.tsx.
+• Administrative Pages: AdminDashboardPage.tsx, AdminUsersPage.tsx, AdminSellersPage.tsx, AdminProductsPage.tsx, AdminCategoriesPage.tsx, AdminCampusesPage.tsx, AdminOrdersPage.tsx, and AdminReportsPage.tsx.
+
+Route access is restricted using guard components defined in frontend/src/routes/guards.tsx:
+• RequireAuth: Validates session state and redirects unauthenticated users to /login with a return URL.
+• RequireSeller: Ensures the active user possesses an approved and verified seller profile.
+• RequireRole: Restricts access to administrative roles (ADMIN, SUPER_ADMIN, MODERATOR).
+
+Client state management is divided into global authentication state and server-state caching:
+1. Global Client State (Zustand): Implemented in frontend/src/stores/authStore.ts to manage user session tokens, profile data (college, branch, semester), and login/logout methods.
+2. Server-State Caching (TanStack React Query v5): Orchestrated in frontend/src/lib/queryClient.ts. Queries and mutations manage caching, optimistic updates, and background refetching for catalog search, cart operations, wishlist items, price alerts, and orders.
+
+Network requests are handled by an Axios instance configured in frontend/src/lib/api/client.ts. A request interceptor automatically attaches the Bearer JWT token from localStorage to the HTTP Authorization header:
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+Reusable UI components located in frontend/src/components/ include ProductCard.tsx, PriceAlertModal.tsx, FilterPanel.tsx, ActiveFilterChips.tsx, NotificationBell.tsx, and RatingStars.tsx.
+
+________________________________________
+
+6.3 AUTHENTICATION AND SESSION MANAGEMENT CODE
+
+Authentication and session control are implemented using stateless JSON Web Tokens (JWT) combined with bcrypt password hashing. User accounts and authentication lifecycles are managed across backend/src/controllers/authController.ts, backend/src/services/authService.ts, and backend/src/repositories/userRepository.ts.
+
+The platform defines six user roles in the UserRole enum within backend/prisma/schema.prisma:
+• STUDENT_BUYER: Standard student account with purchasing, alerting, and messaging capabilities.
+• STUDENT_SELLER: Verified student account permitted to list products and fulfill orders.
+• COMMERCIAL_BOOKSTORE: Verified commercial bookstore account.
+• MODERATOR: Administrative account with content and report moderation access.
+• ADMIN: Operational administrator with campus, category, and seller management access.
+• SUPER_ADMIN: Root administrator with escrow override, dispute arbitration, and audit log access.
+
+Password hashing is executed using bcryptjs with 10 salt rounds in backend/src/utils/passwordUtils.ts:
+
+export async function hashPassword(plainText: string): Promise<string> {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(plainText, salt);
+}
+
+export async function verifyPassword(plainText: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(plainText, hash);
+}
+
+Token creation and validation are defined in backend/src/utils/tokenUtils.ts:
+• Access Token: Encodes userId, email, role, and collegeId, signed with JWT_SECRET with a configurable expiry (15 minutes to 7 days).
+• Refresh Token: Signed with REFRESH_TOKEN_SECRET for session renewal.
+
+Request authorization is enforced by backend/src/middleware/authMiddleware.ts. The middleware verifies the JWT signature, confirms the user is active in the database, and attaches the sanitized user object to req.user. Endpoint access for administrative tasks is governed by backend/src/middleware/adminMiddleware.ts. Direct registration of administrator accounts is explicitly rejected during registration validation in backend/src/validators/authValidators.ts.
+
+Authentication API Endpoints:
+• POST /api/v1/auth/register
+• POST /api/v1/auth/login
+• POST /api/v1/auth/refresh-token
+• GET /api/v1/auth/me
+• POST /api/v1/auth/logout
+• POST /api/v1/auth/dev-promote-admin
+
+________________________________________
+
+6.4 PRODUCT SEARCH AND MARKETPLACE CODE
+
+Product management and catalog discovery are handled in backend/src/controllers/productController.ts, backend/src/services/productService.ts, and backend/src/repositories/productRepository.ts.
+
+Product listings transition through the ProductStatus lifecycle:
+• DRAFT: Incomplete listing saved by the seller.
+• ACTIVE: Publicly visible listing available for purchase.
+• RESERVED: Item locked in an ongoing checkout or escrow payment transaction.
+• SOLD: Completed transaction where inventory quantity has reached zero.
+• PAUSED: Listing temporarily deactivated by seller or administrator.
+
+The catalog search engine in productRepository.ts dynamically constructs Prisma queries supporting full-text search, campus college matching, category and subcategory filtering, condition grades (BRAND_NEW, LIKE_NEW, GOOD, FAIR, ACCEPTABLE), and Decimal price range boundaries:
+
+const where: Prisma.ProductWhereInput = {
+  status: ProductStatus.ACTIVE,
+  deletedAt: null,
+  ...(collegeId && { collegeId }),
+  ...(categoryId && { categoryId }),
+  ...(minPrice || maxPrice ? {
+    price: {
+      ...(minPrice ? { gte: new Prisma.Decimal(minPrice) } : {}),
+      ...(maxPrice ? { lte: new Prisma.Decimal(maxPrice) } : {}),
+    }
+  } : {}),
+  ...(search && {
+    OR: [
+      { title: { contains: search } },
+      { description: { contains: search } },
+      { bookDetails: { author: { contains: search } } },
+    ]
+  }),
+};
+
+Academic Personalization ("For You" Mode):
+The system matches listings against the student's academic profile (course and semester) and product targeting attributes (targetBranch and targetSemester). Products are scored and prioritized:
+• Match on branch and semester: Highest relevance priority (+400 score).
+• Match on branch: High relevance priority (+250 score).
+• Match on semester: Moderate relevance priority (+150 score).
+• Match on campus: Baseline collegiate priority (+100 score).
+
+Smart Price-Drop and Availability Alerts:
+Implemented across backend/src/repositories/priceAlertRepository.ts, backend/src/repositories/availabilityAlertRepository.ts, and backend/src/services/alertService.ts:
+• Price Alerts (model PriceAlert): Users specify a targetPrice strictly lower than the current price. When a seller updates the listing with a reduced price (newPrice < oldPrice), alertService.onProductPriceChanged queries active alerts where targetPrice >= newPrice, sends in-app notifications and Socket.IO events, and immediately deactivates the alert (isActive = false, triggeredAt = now()) to prevent duplicate notification spam.
+• Availability Alerts (model AvailabilityAlert): Triggers automated notifications when an out-of-stock or paused product transitions back to ACTIVE status.
+
+Product and Alert API Endpoints:
+• GET /api/v1/products
+• GET /api/v1/products/:id
+• POST /api/v1/products
+• PUT /api/v1/products/:id
+• DELETE /api/v1/products/:id
+• POST /api/v1/products/:id/publish
+• POST /api/v1/products/:id/pause
+• POST /api/v1/products/:id/price-alert
+• GET /api/v1/products/:id/price-alert
+• DELETE /api/v1/products/:id/price-alert
+• POST /api/v1/products/:id/availability-alert
+• GET /api/v1/products/:id/availability-alert
+• DELETE /api/v1/products/:id/availability-alert
+• GET /api/v1/price-alerts
+
+________________________________________
+
+6.5 SHOPPING CART AND CHECKOUT CODE
+
+The shopping cart and wishlist subsystems handle pre-order item staging, real-time inventory validation, and checkout preparation.
+
+Wishlist System:
+Managed in backend/src/repositories/wishlistRepository.ts. The model Wishlist is linked 1-to-1 with User, containing WishlistItem records linked to Product with a unique constraint (@@unique([wishlistId, productId])).
+
+Shopping Cart System:
+Managed in backend/src/repositories/cartRepository.ts and backend/src/services/orderService.ts:
+• The model Cart maintains CartItem records tracking product references and desired quantities.
+• Sellers are prevented from adding their own listings to their cart via anti-self-purchase validation rules.
+• Checkout preview (orderService.getCheckoutPreview) validates that all staged items are ACTIVE, verifies product.quantity >= cartItem.quantity, and computes pricing totals using Decimal arithmetic:
+
+Line Total = Product Unit Price × Quantity
+Subtotal = Sum of all active Line Totals
+Total Amount = Subtotal + Shipping Amount
+
+Shopping Cart and Wishlist API Endpoints:
+• GET /api/v1/wishlist
+• POST /api/v1/wishlist/items
+• DELETE /api/v1/wishlist/items/:productId
+• GET /api/v1/cart
+• POST /api/v1/cart/items
+• PATCH /api/v1/cart/items/:id
+• DELETE /api/v1/cart/items/:id
+• DELETE /api/v1/cart/clear
+• GET /api/v1/orders/checkout/preview
+
+________________________________________
+
+6.6 ORDER AND ESCROW TRANSACTION CODE
+
+Order creation, payment verification, and escrow settlement are managed across backend/src/services/orderService.ts, backend/src/services/paymentService.ts, backend/src/repositories/orderRepository.ts, and backend/src/repositories/paymentRepository.ts.
+
+Order Creation and Immutable Snapshots:
+When an order is submitted (POST /api/v1/orders), orderService.createOrder executes an atomic transaction (prisma.$transaction) that:
+1. Validates delivery address ownership and stock availability.
+2. Creates the Order record with status PENDING_PAYMENT.
+3. Creates OrderItem snapshot records capturing the exact snapshotTitle, snapshotCondition, snapshotUnitPrice, and snapshotIsbn at purchase time, insulating the receipt from future product edits.
+4. Decrements product inventory quantity.
+5. Clears the user's shopping cart.
+
+Razorpay Payment Processing and Cryptographic Verification:
+1. Order Initialization: POST /api/v1/payments/create-order generates a Razorpay order reference with amount calculated in paise (Amount in Paise = Amount in INR × 100).
+2. Signature Verification: POST /api/v1/payments/verify checks the HMAC-SHA256 signature using RAZORPAY_KEY_SECRET in backend/src/config/razorpay.ts:
+
+export function verifyRazorpaySignature(
+  orderId: string,
+  paymentId: string,
+  signature: string
+): boolean {
+  const generatedSignature = crypto
+    .createHmac('sha256', RAZORPAY_KEY_SECRET)
+    .update(`${orderId}|${paymentId}`)
+    .digest('hex');
+  return generatedSignature === signature;
+}
+
+3. Escrow State Update: Upon successful signature verification, the payment transitions to CAPTURED_ESCROW and the order updates to PAID_ESCROW within a database transaction.
+
+Escrow Settlement Lifecycle:
+• PENDING_PAYMENT: Order generated, awaiting payment capture.
+• PAID_ESCROW: Funds captured and locked in platform escrow.
+• HANDOVER_PENDING: Buyer and seller schedule in-person safe-zone inspection on campus.
+• COMPLETED: Buyer confirms receipt; escrow is released to the seller's SellerWallet.clearedBalance.
+• CANCELLED / REFUNDED: Order cancelled; funds returned to buyer and inventory restored.
+
+Verified Reviews:
+Following order completion, buyers can submit reviews via POST /api/v1/products/:id/reviews, which creates ProductReview and SellerReview records and recalculates the seller's aggregate rating.
+
+Order and Payment API Endpoints:
+• POST /api/v1/orders
+• GET /api/v1/orders
+• GET /api/v1/orders/:orderNumber
+• POST /api/v1/orders/:orderNumber/cancel
+• POST /api/v1/orders/:orderNumber/complete-delivery
+• POST /api/v1/payments/create-order
+• POST /api/v1/payments/verify
+• POST /api/v1/payments/webhook
+• POST /api/v1/products/:id/reviews
+
+________________________________________
+
+6.7 REAL-TIME CHAT AND NOTIFICATION CODE
+
+Real-time messaging and event notifications are managed via WebSockets using Socket.IO in backend/src/realtime/socketServer.ts.
+
+WebSocket Authentication and Connection Management:
+During the WebSocket handshake, the server extracts the JWT token from socket.handshake.auth.token or headers and validates it with verifyAccessToken. Authenticated sockets join a user-specific private room (user:<userId>):
+
+io.use((socket: Socket, next) => {
+  try {
+    const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
+    if (!token) return next(new Error('Authentication required.'));
+    const decoded = verifyAccessToken(token);
+    (socket as any).user = decoded;
+    next();
+  } catch (err) {
+    next(new Error('Invalid token.'));
+  }
+});
+
+io.on('connection', (socket: Socket) => {
+  const user = (socket as any).user;
+  if (user?.id) {
+    socket.join(`user:${user.id}`);
+  }
+});
+
+Private Direct Messaging:
+Conversations between buyers and sellers are persisted in the Conversation and Message database tables. When a message is sent (POST /api/v1/conversations/:id/messages), the backend persists the record and emits a message:received event to the recipient's private room.
+
+Push Notifications:
+Platform events trigger notification dispatch via notificationService.notifyUser in backend/src/services/notificationService.ts:
+• Creates a database record in the Notification table (types include PRICE_DROP, BACK_IN_STOCK, ORDER_CREATED, PAYMENT_SUCCESS, PAYMENT_FAILED, SHIPMENT_UPDATED, REVIEW_RECEIVED, SYSTEM).
+• Dispatches an instant WebSocket event via emitToUser(userId, 'notification:new', { notification, unreadCount }).
+
+Messaging and Notification API Endpoints:
+• GET /api/v1/conversations
+• POST /api/v1/conversations
+• GET /api/v1/conversations/:id/messages
+• POST /api/v1/conversations/:id/messages
+• GET /api/v1/notifications
+• PATCH /api/v1/notifications/:id/read
+• POST /api/v1/notifications/mark-all-read
+
+________________________________________
+
+6.8 SECURITY AND ERROR HANDLING CODE
+
+CampusMarket implements a multi-layered defense-in-depth security model across network, routing, application logic, and data layers:
+
+1. Input Validation: Request payloads are validated against Zod schemas in backend/src/validators/*.ts before reaching controllers. Invalid requests return descriptive 400 Bad Request error envelopes.
+2. SQL Injection Defense: All database queries are executed through Prisma ORM using parameterized statements.
+3. HTTP Header Protection: helmet middleware sets secure Content Security Policies, prevents clickjacking, and enforces transport security headers.
+4. Cross-Origin Protection: cors middleware restricts API access to permitted frontend origins with credentials support enabled.
+5. Rate Limiting: express-rate-limit middleware protects authentication routes against brute-force and credential stuffing attacks.
+6. Resource Ownership Validation: Data queries enforce tenant and owner isolation; users cannot view or modify other users' carts, orders, alerts, messages, or addresses.
+7. Audit Logging: High-privilege administrative actions and payment state transitions are recorded to the AuditLog table via logAuditEvent in backend/src/utils/auditLogger.ts.
+8. Currency Integrity: Monetary values are strictly calculated in Indian Rupees (INR / ₹) with Decimal(10, 2) precision in MySQL.
+
+Centralized Error Handling:
+All runtime errors and validation failures are intercepted by backend/src/middleware/errorHandler.ts, producing standardized JSON error envelopes:
+
+export function errorHandler(err: AppError, req: Request, res: Response, next: NextFunction) {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Please check the information you entered.',
+        details: err.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
+      },
+      meta: { timestamp: new Date().toISOString() },
+    });
+  }
+
+  const statusCode = err.statusCode || 500;
+  const errorCode = err.code || (statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'BAD_REQUEST');
+  const message = statusCode >= 500 && isProduction ? 'Something went wrong. Please try again.' : err.message;
+
+  res.status(statusCode).json({
+    success: false,
+    error: { code: errorCode, message, ...(err.details ? { details: err.details } : {}) },
+    meta: { timestamp: new Date().toISOString() },
+  });
+}
+
+________________________________________
+
+6.9 SUMMARY
+
+CampusMarket represents a complete, full-stack architectural solution engineered for university secondhand commerce. By combining a React 18 single-page application, an Express.js and TypeScript REST/WebSocket backend, a MySQL relational database managed via Prisma ORM, and Razorpay escrow settlement, the platform provides a secure, responsive, and trustworthy marketplace. 
+
+Key technical accomplishments documented across this chapter include:
+• Decoupled TypeScript monorepo architecture with clean separation of presentation, business logic, and data layers.
+• Role-based access control supporting buyers, student sellers, commercial bookstores, moderators, and administrators.
+• Multi-criteria catalog search coupled with academic curriculum personalization ("For You" discovery mode).
+• Smart price-drop and restock alerting with automatic anti-spam deactivation upon trigger.
+• Atomic order transactions with immutable price snapshots and HMAC-SHA256 verified escrow payment processing.
+• Authenticated real-time WebSocket communication for private chat and instant notifications.
+• Comprehensive defense-in-depth security, input validation, audit logging, and normalized error response handling.

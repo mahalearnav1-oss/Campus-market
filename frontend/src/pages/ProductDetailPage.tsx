@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api/client';
 import { queryClient } from '../lib/queryClient';
 import { RatingStars } from '../components/reviews/RatingStars';
+import { PriceAlertModal } from '../components/alerts/PriceAlertModal';
+import { ReportModal } from '../components/reports/ReportModal';
 import { useAuthStore } from '../stores/authStore';
 import { formatINR } from '../lib/formatters';
 
@@ -16,6 +19,8 @@ export interface DetailedProduct {
   originalMsrp?: string | number | null;
   quantity: number;
   status: string;
+  targetBranch?: string | null;
+  targetSemester?: number | null;
   createdAt: string;
   category?: { name: string; slug: string } | null;
   college?: { name: string; code: string } | null;
@@ -49,9 +54,42 @@ export const ProductDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingCart, setIsAddingCart] = useState(false);
   const [isSavingWishlist, setIsSavingWishlist] = useState(false);
+  const [isPriceAlertModalOpen, setIsPriceAlertModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isAlertLoading, setIsAlertLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
+
+  // Price Alert Query
+  const { data: priceAlertData, refetch: refetchPriceAlert } = useQuery({
+    queryKey: ['price-alert', id],
+    queryFn: async () => {
+      if (!isAuthenticated || !id) return null;
+      try {
+        const res: any = await apiClient.get(`/products/${id}/price-alert`);
+        return res.data?.alert || null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: Boolean(isAuthenticated && id),
+  });
+
+  // Availability Alert Query
+  const { data: availabilityAlertData, refetch: refetchAvailabilityAlert } = useQuery({
+    queryKey: ['availability-alert', id],
+    queryFn: async () => {
+      if (!isAuthenticated || !id) return null;
+      try {
+        const res: any = await apiClient.get(`/products/${id}/availability-alert`);
+        return res.data?.alert || null;
+      } catch {
+        return null;
+      }
+    },
+    enabled: Boolean(isAuthenticated && id),
+  });
 
   // Reviews State
   const [reviewsData, setReviewsData] = useState<{
@@ -113,6 +151,66 @@ export const ProductDetailPage: React.FC = () => {
       setActionError(err.message || 'Couldn\'t save to wishlist. Please try again.');
     } finally {
       setIsSavingWishlist(false);
+    }
+  };
+
+  const handleSavePriceAlert = async (targetPrice: number) => {
+    if (!id || !product) return;
+    try {
+      setIsAlertLoading(true);
+      setActionSuccess(null);
+      setActionError(null);
+      await apiClient.post(`/products/${id}/price-alert`, { targetPrice });
+      await refetchPriceAlert();
+      setActionSuccess(`Price alert set! We'll notify you as soon as this item reaches ${formatINR(targetPrice)} or less.`);
+    } catch (err: any) {
+      throw err;
+    } finally {
+      setIsAlertLoading(false);
+    }
+  };
+
+  const handleRemovePriceAlert = async () => {
+    if (!id) return;
+    try {
+      setIsAlertLoading(true);
+      setActionSuccess(null);
+      setActionError(null);
+      await apiClient.delete(`/products/${id}/price-alert`);
+      await refetchPriceAlert();
+      setActionSuccess('Price alert removed.');
+    } catch (err: any) {
+      throw err;
+    } finally {
+      setIsAlertLoading(false);
+    }
+  };
+
+  const handleToggleAvailabilityAlert = async () => {
+    if (!id || !product) return;
+    if (!isAuthenticated) {
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
+    try {
+      setIsAlertLoading(true);
+      setActionSuccess(null);
+      setActionError(null);
+
+      if (availabilityAlertData?.active) {
+        await apiClient.delete(`/products/${id}/availability-alert`);
+        await refetchAvailabilityAlert();
+        setActionSuccess('Availability alert removed.');
+      } else {
+        await apiClient.post(`/products/${id}/availability-alert`, {});
+        await refetchAvailabilityAlert();
+        setActionSuccess('Availability alert active! We\'ll notify you when this item is back in stock.');
+      }
+    } catch (err: any) {
+      setActionError(err.message || 'Couldn\'t update availability alert. Please try again.');
+    } finally {
+      setIsAlertLoading(false);
     }
   };
 
@@ -249,10 +347,24 @@ export const ProductDetailPage: React.FC = () => {
         {/* Right Column: Information & Actions */}
         <div className="lg:col-span-6 space-y-6">
           <div className="space-y-3 border-b border-[#D6C8B8] pb-6">
-            <div className="flex items-center justify-between">
-              <span className="px-3 py-1 bg-[#E7DED1] text-[#3B2A22] font-sans font-bold text-xs rounded-full border border-[#D6C8B8]">
-                Grade: {product.conditionGrade}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 bg-[#E7DED1] text-[#3B2A22] font-sans font-bold text-xs rounded-full border border-[#D6C8B8]">
+                  Grade: {product.conditionGrade}
+                </span>
+
+                {(product.targetBranch || product.targetSemester) && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#6E8A62]/15 text-[#6E8A62] font-sans font-semibold text-xs rounded-full border border-[#6E8A62]/30">
+                    <span>🎓</span>
+                    <span>
+                      {product.targetSemester ? `Semester ${product.targetSemester}` : ''}
+                      {product.targetSemester && product.targetBranch ? ' • ' : ''}
+                      {product.targetBranch}
+                    </span>
+                  </span>
+                )}
+              </div>
+
               {product.college && (
                 <span className="font-sans text-xs font-semibold text-[#6E5948] bg-[#EDE5D9] px-3 py-1 rounded-full border border-[#D6C8B8] flex items-center gap-1.5">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -377,33 +489,108 @@ export const ProductDetailPage: React.FC = () => {
                 </select>
               </div>
             )}
+               {isAvailable ? (
+              <div className="flex flex-wrap sm:flex-nowrap gap-3">
+                <button
+                  disabled={!isAvailable || isAddingCart}
+                  onClick={handleAddToCart}
+                  className="btn-primary flex-1 py-4 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="9" cy="21" r="1" />
+                    <circle cx="20" cy="21" r="1" />
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                  </svg>
+                  {isAddingCart ? 'Adding to Cart…' : isAvailable ? 'Add to Cart' : 'Item Out of Stock'}
+                </button>
 
-            <div className="flex gap-3">
-              <button
-                disabled={!isAvailable || isAddingCart}
-                onClick={handleAddToCart}
-                className="btn-primary flex-1 py-4 text-xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="9" cy="21" r="1" />
-                  <circle cx="20" cy="21" r="1" />
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                </svg>
-                {isAddingCart ? 'Adding to Cart…' : isAvailable ? 'Add to Cart' : 'Item Out of Stock'}
-              </button>
+                <button
+                  type="button"
+                  disabled={isSavingWishlist}
+                  onClick={handleAddToWishlist}
+                  className="btn-secondary py-4 px-4 text-xs font-semibold uppercase flex items-center gap-1.5"
+                  title="Save to Wishlist"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9B5C52]">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  <span>{isSavingWishlist ? 'Saving…' : 'Wishlist'}</span>
+                </button>
 
-              <button
-                disabled={isSavingWishlist}
-                onClick={handleAddToWishlist}
-                className="btn-secondary py-4 px-6 text-xs font-semibold uppercase flex items-center gap-1.5"
-                title="Save to Wishlist"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[#9B5C52]">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                {isSavingWishlist ? 'Saving…' : 'Save'}
-              </button>
-            </div>
+                {priceAlertData?.active ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPriceAlertModalOpen(true)}
+                    className="py-3 px-4 min-h-[44px] rounded-full text-xs font-semibold uppercase flex items-center gap-1.5 border border-[#C8A46A] bg-[#C8A46A]/20 text-[#3B2A22] hover:bg-[#C8A46A]/30 transition-all cursor-pointer"
+                    title="Edit Price Alert"
+                  >
+                    <span>🔔</span>
+                    <span>{formatINR(priceAlertData.targetPrice)}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                        return;
+                      }
+                      setIsPriceAlertModalOpen(true);
+                    }}
+                    className="btn-secondary !py-3 !px-4 text-xs font-semibold uppercase flex items-center gap-1.5"
+                    title="Set Price Drop Alert"
+                  >
+                    <span>🔔</span>
+                    <span>Alert</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="p-4 rounded-2xl bg-[#9B5C52]/10 border border-[#9B5C52]/30 text-center font-sans text-xs font-semibold text-[#9B5C52]">
+                  This product is currently out of stock or inactive.
+                </div>
+
+                <button
+                  type="button"
+                  disabled={isAlertLoading}
+                  onClick={handleToggleAvailabilityAlert}
+                  className={`w-full py-3.5 px-6 rounded-full text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 border transition-all cursor-pointer ${
+                    availabilityAlertData?.active
+                      ? 'bg-[#6E8A62]/15 text-[#6E8A62] border-[#6E8A62]/40 hover:bg-[#9B5C52]/10 hover:text-[#9B5C52] hover:border-[#9B5C52]/40'
+                      : 'btn-secondary'
+                  }`}
+                >
+                  <span>🔔</span>
+                  <span>
+                    {availabilityAlertData?.active
+                      ? '✓ Availability Alert Enabled (Click to Remove)'
+                      : 'Notify Me When Available'}
+                  </span>
+                </button>
+              </div>
+            )}
+              {/* Subtle Report Listing Action */}
+              <div className="pt-1 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+                      return;
+                    }
+                    setIsReportModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-sans text-[#8B7562] hover:text-[#9B5C52] transition-colors cursor-pointer"
+                  title="Report this listing for moderation review"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                    <line x1="4" y1="22" x2="4" y2="15" />
+                  </svg>
+                  <span>Report Listing</span>
+                </button>
+              </div>
           </div>
         </div>
 
@@ -489,6 +676,28 @@ export const ProductDetailPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Price Alert Modal */}
+      <PriceAlertModal
+        isOpen={isPriceAlertModalOpen}
+        onClose={() => setIsPriceAlertModalOpen(false)}
+        productTitle={product.title}
+        productImage={selectedImage || product.images?.[0]?.imageUrl}
+        currentPrice={Number(product.price)}
+        initialTargetPrice={priceAlertData?.active ? priceAlertData.targetPrice : null}
+        onSaveAlert={handleSavePriceAlert}
+        onRemoveAlert={priceAlertData?.active ? handleRemovePriceAlert : undefined}
+        isLoading={isAlertLoading}
+      />
+
+      {/* Abuse Report Modal */}
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetType="PRODUCT"
+        targetId={product.id}
+        targetTitle={product.title}
+      />
 
     </div>
   );

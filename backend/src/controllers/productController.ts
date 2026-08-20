@@ -24,7 +24,13 @@ export async function createProduct(req: Request, res: Response, next: NextFunct
 export async function getPublicProducts(req: Request, res: Response, next: NextFunction) {
   try {
     const validatedQuery = productDiscoveryQuerySchema.parse(req.query);
-    const result = await productService.getPublicProducts(validatedQuery);
+    const userAcademicContext = req.user ? {
+      collegeId: req.user.collegeId,
+      course: req.user.course,
+      semester: req.user.semester,
+    } : undefined;
+
+    const result = await productService.getPublicProducts(validatedQuery, userAcademicContext);
     res.status(200).json({
       success: true,
       data: result,
