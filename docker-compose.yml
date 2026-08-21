@@ -5,7 +5,7 @@ services:
     image: mysql:8.0
     container_name: campusmarket_mysql
     environment:
-      MYSQL_ROOT_PASSWORD: YOUR_SQL_PASSWORD
+      MYSQL_ROOT_PASSWORD: SQL_PASSWORD
       MYSQL_DATABASE: campusmarket
     ports:
       - "3306:3306"

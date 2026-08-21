@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { apiClient } from '../lib/api/client';
@@ -8,10 +8,30 @@ export const AdminLayout: React.FC = () => {
   const { user, logout, fetchMe } = useAuthStore();
   const [isPromoting, setIsPromoting] = useState(false);
   const [promoteMsg, setPromoteMsg] = useState<string | null>(null);
+  const [showEasterEgg, setShowEasterEgg] = useState(false);
+  const easterEggRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchMe();
   }, []);
+
+  useEffect(() => {
+    if (!showEasterEgg) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (easterEggRef.current && !easterEggRef.current.contains(e.target as Node)) {
+        setShowEasterEgg(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowEasterEgg(false);
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showEasterEgg]);
 
   const isAdminRole = user?.role === 'ADMIN' || user?.role === 'MODERATOR' || user?.role === 'SUPER_ADMIN';
 
@@ -244,6 +264,26 @@ export const AdminLayout: React.FC = () => {
         <main className="flex-1 min-w-0 bg-[#EDE5D9] border border-[#D6C8B8] rounded-[32px] p-8 sm:p-10 shadow-warm-subtle">
           <Outlet />
         </main>
+      </div>
+
+      {/* Subtle Developer Signature Easter Egg */}
+      <div ref={easterEggRef} className="fixed bottom-3 right-3 z-30 flex flex-col items-end pointer-events-auto">
+        {showEasterEgg && (
+          <div
+            className="mb-2 px-3.5 py-2 rounded-2xl bg-[#EDE5D9] border border-[#D6C8B8] shadow-warm-card text-[#3B2A22] font-sans text-[11px] animate-fadeIn whitespace-nowrap flex items-center gap-1.5 select-none"
+            role="status"
+          >
+            <span className="text-[#C8A46A] text-[10px]">✦</span>
+            <span className="font-medium text-[#3B2A22]">Made with care by Arnav.</span>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowEasterEgg((prev) => !prev)}
+          className="w-1.5 h-1.5 rounded-full bg-[#8B7562]/25 hover:bg-[#C8A46A] hover:scale-150 transition-all duration-300 focus:outline-none cursor-pointer"
+          aria-label="Developer signature"
+          title=""
+        />
       </div>
     </div>
   );

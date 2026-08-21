@@ -26,10 +26,21 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    const errorData = error.response?.data?.error;
+    let message = errorData?.message || 'Couldn\'t connect to the server. Please check your connection.';
+
+    // If validation error has specific field details, surface the most specific message
+    if (errorData?.details && Array.isArray(errorData.details) && errorData.details.length > 0) {
+      const firstDetail = errorData.details[0];
+      if (firstDetail?.message) {
+        message = firstDetail.message;
+      }
+    }
+
     const customError = {
-      code: error.response?.data?.error?.code || 'NETWORK_ERROR',
-      message: error.response?.data?.error?.message || 'Couldn\'t connect to the server. Please check your connection.',
-      details: error.response?.data?.error?.details || [],
+      code: errorData?.code || 'NETWORK_ERROR',
+      message,
+      details: errorData?.details || [],
     };
     return Promise.reject(customError);
   }

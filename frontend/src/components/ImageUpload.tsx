@@ -150,8 +150,18 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             className="input-editorial text-xs"
           />
           {value && (
-            <div className="relative w-32 h-32 rounded-2xl border border-[#D6C8B8] overflow-hidden bg-[#E7DED1]">
-              <img src={value} alt="Preview" className="w-full h-full object-cover" />
+            <div className="space-y-1.5">
+              <div className="relative w-32 h-32 rounded-2xl border border-[#D6C8B8] overflow-hidden bg-[#E7DED1] shadow-inner">
+                <img
+                  src={value}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                  onError={() => {
+                    setError('The provided URL could not be loaded as an image. Please verify the link.');
+                  }}
+                />
+              </div>
+              <p className="font-sans text-[10px] text-[#8B7562]">Image Preview</p>
             </div>
           )}
         </div>

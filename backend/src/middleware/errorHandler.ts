@@ -28,11 +28,22 @@ export function errorHandler(err: AppError, req: Request, res: Response, next: N
   // Handle Prisma Database Known Errors
   if (err.name === 'PrismaClientKnownRequestError') {
     logger.error(`Prisma Known Error on ${req.method} ${req.path}`, err);
+    let dbMessage = 'Unable to complete this request right now. Please try again.';
+    if ((err as any).code === 'P2000') {
+      dbMessage = 'One of the provided values (such as an image URL or description) is too long for the database.';
+    } else if ((err as any).code === 'P2002') {
+      dbMessage = 'A record with this information already exists.';
+    } else if ((err as any).code === 'P2003') {
+      dbMessage = 'Referenced record was not found or is invalid.';
+    } else if ((err as any).code === 'P2025') {
+      dbMessage = 'The requested item could not be found.';
+    }
+
     return res.status(400).json({
       success: false,
       error: {
         code: 'DATABASE_ERROR',
-        message: 'Unable to complete this request right now. Please try again.',
+        message: dbMessage,
       },
       meta: { timestamp: new Date().toISOString() },
     });

@@ -125,53 +125,59 @@ holy_proj_v2/
 │       ├── components/
 │       │   ├── ProductCard.tsx    # Editorial product card with discounts, badges, escrow tags
 │       │   ├── BookScrollHero.tsx # Interactive marketplace hero banner
+│       │   ├── ImageUpload.tsx    # Dual-mode photo upload & web image URL handler with preview validation
+│       │   ├── alerts/            # PriceAlertModal target price setter and toggle
+│       │   ├── disputes/          # DisputeModal buyer/seller order conflict resolution form
+│       │   ├── reports/           # ReportModal content & storefront abuse reporting dialog
 │       │   ├── discovery/         # SearchBar, FilterPanel, SortSelect, ProductPagination, ActiveFilterChips
 │       │   ├── notifications/     # NotificationBell with unread counter & real-time badge
 │       │   └── reviews/           # RatingStars interactive star rating display
 │       └── pages/                 # Full Page Views
 │           ├── HomePage.tsx               # Landing page with hero, categories, featured books
 │           ├── MarketplacePage.tsx        # Search, faceted filters, sorting, product grid
-│           ├── ProductDetailPage.tsx      # Comprehensive product specs, gallery, seller bio, reviews
+│           ├── ProductDetailPage.tsx      # Comprehensive product specs, gallery, seller bio, reviews, price alerts
+│           ├── PriceAlertsPage.tsx        # User price drop & availability alerts management dashboard
 │           ├── CartPage.tsx               # Shopping cart summary, quantity updater, checkout trigger
-│           ├── CheckoutPage.tsx           # Delivery meetup selection, payment mode, escrow lock
+│           ├── CheckoutPage.tsx           # Delivery meetup selection, Instant UPI QR flow, escrow lock
 │           ├── BuyerOrdersPage.tsx        # Buyer order history and status overview
-│           ├── OrderDetailPage.tsx        # Detailed item snapshot, timeline, safe-zone instructions
-│           ├── OrderTrackingPage.tsx      # Multi-step escrow & shipment progress tracker
+│           ├── OrderDetailPage.tsx        # Detailed item snapshot, timeline, safe-zone instructions, dispute trigger
+│           ├── OrderTrackingPage.tsx      # Multi-step escrow & shipment progress tracker with dispute action
 │           ├── PublicTrackingPage.tsx     # Public tracking by shipment tracking number
+│           ├── PublicSellerPage.tsx       # Public seller storefront, catalog, reviews, and abuse reporting
 │           ├── ConversationsPage.tsx      # Direct message thread inbox
 │           ├── ChatThreadPage.tsx         # Real-time WebSocket chat window with buyer/seller
 │           ├── NotificationsPage.tsx      # Dedicated notification feed with mark-as-read
 │           ├── LoginPage.tsx              # Student login form with validation
 │           ├── RegisterPage.tsx           # Student account registration with role & college selector
 │           ├── AccountPage.tsx            # Student profile overview, statistics, and tabs
-│           ├── BecomeSellerPage.tsx       # Student seller onboarding and store activation
+│           ├── BecomeSellerPage.tsx       # Student seller onboarding and store activation (PENDING state)
 │           ├── SellerDashboardPage.tsx    # Seller revenue, pending escrow, recent sales
 │           ├── WishlistPage.tsx           # Saved items grid with move-to-cart action
 │           ├── account/                   # Account tabs: ProfileTab, AddressesTab, PreferencesTab
 │           ├── seller/                    # Seller management: SellerProductsPage, CreateProductPage, EditProductPage, SellerOrdersPage
-│           └── admin/                     # Admin suite: AdminDashboardPage, AdminUsersPage, AdminSellersPage, AdminProductsPage, AdminCategoriesPage, AdminOrdersPage, AdminReportsPage, AdminDisputesPage, AdminAuditLogsPage
+│           └── admin/                     # Admin suite: AdminDashboardPage, AdminUsersPage, AdminSellersPage (Storefront Verification), AdminProductsPage, AdminCategoriesPage, AdminOrdersPage, AdminReportsPage, AdminDisputesPage, AdminAuditLogsPage
 │
 ├── backend/                       # Server-Side REST API & Real-Time Engine
 │   ├── package.json               # Backend dependencies (Express, Prisma, bcryptjs, JWT, Socket.IO)
 │   ├── prisma/
-│   │   ├── schema.prisma          # Complete 34-model MySQL schema definition with enums & relations
+│   │   ├── schema.prisma          # Complete 37-model MySQL schema definition with enums & relations
 │   │   └── seed.ts                # Database seeder with colleges, users, bcrypt hashes, products
 │   └── src/
 │       ├── server.ts              # HTTP server entry point & Socket.IO initialization
 │       ├── app.ts                 # Express app initialization: Helmet, CORS, cookies, rate limiters
 │       ├── config/                # Environment variables configuration & Prisma client instance
 │       ├── middleware/
-│       │   ├── authMiddleware.ts   # JWT validation, user extraction, requireSeller guard
+│       │   ├── authMiddleware.ts   # JWT validation, user extraction, requireSeller, requireVerifiedSeller
 │       │   ├── adminMiddleware.ts  # requireAdmin and requireModerator role enforcement
 │       │   ├── errorHandler.ts     # Global centralized error handler with Zod/Prisma mapping
 │       │   ├── rateLimiting.ts     # Tiered express-rate-limit configurations (auth, API, payments)
 │       │   └── requestLogger.ts    # Incoming HTTP request logging
 │       ├── realtime/
 │       │   └── socketServer.ts     # Socket.IO server, JWT handshake auth, user rooms, event emitter
-│       ├── validators/            # Zod validation schemas for all incoming request payloads
+│       ├── validators/            # Zod validation schemas for all incoming request payloads (alerts, products, auth)
 │       ├── types/                 # Express Request augmentation with `req.user`, auth DTOs
-│       ├── repositories/          # Direct Prisma database access layer (15 repositories)
-│       ├── services/              # Business logic layer (18 services)
+│       ├── repositories/          # Direct Prisma database access layer (17 repositories)
+│       ├── services/              # Business logic layer (19 services including alertService, orderService)
 │       ├── controllers/           # HTTP request handlers parsing inputs & returning standardized JSON
 │       ├── routes/                # Express router modules mapped to `/api/v1/*`
 │       └── utils/                 # Password hashing, JWT token generation, logger, order number generator
@@ -288,16 +294,17 @@ The application entry point is [`frontend/src/main.tsx`](file:///c:/Users/Arnav/
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `/` | `HomePage` | `PublicLayout` | Landing page, hero, category cards, featured listings | No | Public |
 | `/products` | `MarketplacePage` | `PublicLayout` | Search, faceted filters, price slider, sorting, pagination | No | Public |
-| `/products/:id` | `ProductDetailPage` | `PublicLayout` | Full product specs, condition notes, seller bio, reviews | No | Public |
+| `/products/:id` | `ProductDetailPage` | `PublicLayout` | Full product specs, condition notes, seller bio, reviews, price alerts | No | Public |
+| `/price-alerts` | `PriceAlertsPage` | `PublicLayout` | Active price drop and back-in-stock alerts management dashboard | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/track/:shipmentNumber` | `PublicTrackingPage` | `PublicLayout` | Public shipment tracking by tracking number | No | Public |
 | `/login` | `LoginPage` | `PublicLayout` | Student sign-in form | No (`UnauthOnly`) | Anonymous Only |
 | `/register` | `RegisterPage` | `PublicLayout` | Student registration with college & role selection | No (`UnauthOnly`) | Anonymous Only |
 | `/cart` | `CartPage` | `PublicLayout` | Shopping cart items, quantity modification, checkout button | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/wishlist` | `WishlistPage` | `PublicLayout` | Saved items list with move-to-cart capability | **Yes** (`RequireAuth`) | Any Authenticated |
-| `/checkout` | `CheckoutPage` | `PublicLayout` | Delivery safe-zone selection, escrow funding | **Yes** (`RequireAuth`) | Any Authenticated |
+| `/checkout` | `CheckoutPage` | `PublicLayout` | Delivery safe-zone selection, Instant UPI QR escrow funding | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/orders` | `BuyerOrdersPage` | `PublicLayout` | Buyer order history and status overview | **Yes** (`RequireAuth`) | Any Authenticated |
-| `/orders/:orderNumber` | `OrderDetailPage` | `PublicLayout` | Order receipt, purchased item snapshot, reviews trigger | **Yes** (`RequireAuth`) | Any Authenticated |
-| `/orders/:orderNumber/tracking` | `OrderTrackingPage` | `PublicLayout` | Live order escrow status & delivery tracking | **Yes** (`RequireAuth`) | Any Authenticated |
+| `/orders/:orderNumber` | `OrderDetailPage` | `PublicLayout` | Order receipt, purchased item snapshot, reviews & dispute trigger | **Yes** (`RequireAuth`) | Any Authenticated |
+| `/orders/:orderNumber/tracking` | `OrderTrackingPage` | `PublicLayout` | Live order escrow status, delivery tracking & dispute trigger | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/messages` | `ConversationsPage` | `PublicLayout` | Message thread inbox with other campus members | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/messages/:conversationId` | `ChatThreadPage` | `PublicLayout` | Live WebSocket chat conversation with buyer/seller | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/notifications` | `NotificationsPage` | `PublicLayout` | Notification feed with mark-as-read and filters | **Yes** (`RequireAuth`) | Any Authenticated |
@@ -305,21 +312,22 @@ The application entry point is [`frontend/src/main.tsx`](file:///c:/Users/Arnav/
 | `/account/profile` | `ProfileTab` | `AccountLayout` | Edit name, bio, avatar, contact phone | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/account/preferences` | `PreferencesTab` | `AccountLayout` | Notification preferences & fulfillment defaults | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/account/addresses` | `AddressesTab` | `AccountLayout` | Campus dorm, building, and delivery addresses | **Yes** (`RequireAuth`) | Any Authenticated |
-| `/become-seller` | `BecomeSellerPage` | `PublicLayout` | Activate seller account & register storefront name | **Yes** (`RequireAuth`) | Any Authenticated |
+| `/become-seller` | `BecomeSellerPage` | `PublicLayout` | Activate seller account & register storefront name (starts as `PENDING`) | **Yes** (`RequireAuth`) | Any Authenticated |
 | `/seller` | `SellerDashboardPage` | `PublicLayout` | Seller revenue summary, pending escrow, quick actions | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
-| `/seller/products` | `SellerProductsPage` | `PublicLayout` | Manage active listings, pause, edit, delete | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
-| `/seller/products/new` | `CreateProductPage` | `PublicLayout` | Create a new listing with ISBN, photos, price, grade | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
-| `/seller/products/:id/edit`| `EditProductPage` | `PublicLayout` | Update listing price, quantity, condition notes | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
+| `/seller/products` | `SellerProductsPage` | `PublicLayout` | Manage active listings, pause, edit, delete (requires `VERIFIED` status) | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
+| `/seller/products/new` | `CreateProductPage` | `PublicLayout` | Create a new listing with ISBN, photos/URL, price, grade (requires `VERIFIED`) | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
+| `/seller/products/:id/edit`| `EditProductPage` | `PublicLayout` | Update listing price, quantity, condition notes (requires `VERIFIED`) | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
 | `/seller/orders` | `SellerOrdersPage` | `PublicLayout` | Manage incoming orders, mark ready, dispatch | **Yes** (`RequireAuth`) | `STUDENT_SELLER`, `COMMERCIAL_BOOKSTORE` |
-| `/sellers/:id` | `PublicSellerPage` | `PublicLayout` | Public storefront view, seller rating, active inventory | No | Public |
+| `/sellers/:id` | `PublicSellerPage` | `PublicLayout` | Public storefront view, seller rating, active inventory, abuse reporting | No | Public |
 | `/admin` | `AdminDashboardPage` | `AdminLayout` | Platform analytics, gross volume, active users | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
 | `/admin/users` | `AdminUsersPage` | `AdminLayout` | User list, role management, suspend/ban accounts | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
-| `/admin/sellers` | `AdminSellersPage` | `AdminLayout` | Review seller verification documents & approve | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
+| `/admin/sellers` | `AdminSellersPage` | `AdminLayout` | Review seller verification documents & approve/reject storefronts | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
 | `/admin/products` | `AdminProductsPage` | `AdminLayout` | Moderate listings, remove policy-violating items | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
 | `/admin/categories` | `AdminCategoriesPage` | `AdminLayout` | Add, edit, reorder marketplace categories | **Yes** (`AdminRoute`) | `ADMIN`, `SUPER_ADMIN` |
+| `/admin/campuses` | `AdminCampusesPage` | `AdminLayout` | Manage supported universities and safe-zone locations | **Yes** (`AdminRoute`) | `ADMIN`, `SUPER_ADMIN` |
 | `/admin/orders` | `AdminOrdersPage` | `AdminLayout` | View all platform transactions and escrow states | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
-| `/admin/reports` | `AdminReportsPage` | `AdminLayout` | Investigate reported listings or spam messages | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
-| `/admin/disputes` | `AdminDisputesPage` | `AdminLayout` | Resolve escrow disputes (refund buyer / payout seller) | **Yes** (`AdminRoute`) | `ADMIN`, `SUPER_ADMIN` |
+| `/admin/reports` | `AdminReportsPage` | `AdminLayout` | Investigate reported listings, sellers, spam messages | **Yes** (`AdminRoute`) | `ADMIN`, `MODERATOR`, `SUPER_ADMIN` |
+| `/admin/disputes` | `AdminDisputesPage` | `AdminLayout` | Resolve escrow disputes (arbitrate buyer refund / seller payout) | **Yes** (`AdminRoute`) | `ADMIN`, `SUPER_ADMIN` |
 | `/admin/audit-logs` | `AdminAuditLogsPage` | `AdminLayout` | Security audit trail of administrative actions | **Yes** (`AdminRoute`) | `ADMIN`, `SUPER_ADMIN` |
 
 ---
@@ -397,18 +405,23 @@ The platform defines 6 distinct user roles in `@prisma/client` (`UserRole`):
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | Browse Marketplace & Search | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Add to Cart & Wishlist | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Track Price Drops & Set Alerts | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Place Orders & Fund Escrow | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Report Content / File Order Dispute | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Chat with Sellers / Buyers | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Rate & Review Purchased Items | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Create & Manage Own Listings | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Apply for Seller Storefront | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| Create & Publish Listings | ❌ | 🔒 *(Requires Admin Approval)* | 🔒 *(Requires Admin Approval)* | ❌ | ✅ | ✅ |
 | View Seller Dashboard & Sales | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Manage Shipments & Handover | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Access Admin Dashboard | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| Moderate Listings & Reports | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Storefront Verification & Approvals | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Moderate Listings & User Reports | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 | Suspend / Ban Users | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Verify Seller Documents | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Resolve Escrow Disputes | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| Resolve Escrow Disputes & Refunds | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Manage Categories & Audit Logs | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+
+> **Mandatory Seller Verification Rule:** When a user registers as a seller or creates a storefront, their storefront status is initialized to `PENDING`. Unverified sellers cannot list or publish products until an administrator approves their storefront application in **Admin → Storefront Verification**.
 
 ---
 
@@ -465,14 +478,28 @@ Response returns `{ products, pagination: { total, totalPages, page, limit, hasN
    └──(Delete)─────────> [ARCHIVED / Deleted]
 ```
 
-### Listing Creation Fields
-When a seller creates a listing via [`CreateProductPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/seller/CreateProductPage.tsx):
+### Mandatory Admin Seller Verification
+To ensure student safety, eliminate counterfeit items, and stop marketplace spam, CampusMarket enforces strict **Admin Storefront Verification**:
+1. **Onboarding:** When a student registers or applies via `/become-seller`, a `Seller` record is created with `status: PENDING`.
+2. **Access Gate:** The backend route middleware [`requireVerifiedSeller`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/backend/src/middleware/authMiddleware.ts) intercepts all listing mutations (`POST /products`, `PATCH /products/:id`, `POST /products/:id/publish`, `POST /products/:id/images`). If `seller.status !== 'VERIFIED'`, the request is rejected with HTTP `403 Forbidden` (`SELLER_NOT_VERIFIED`).
+3. **Admin Review:** Campus administrators review the applicant's storefront name, student identification, college affiliation, and verification documents in **Admin → Storefront Verification** (`/admin/sellers`).
+4. **Verification Action:** The administrator can:
+   - **`VERIFIED`:** Unlocks product creation and marketplace publishing.
+   - **`REJECTED`:** Rejects the application with documented review notes.
+   - **`SUSPENDED`:** Temporarily halts selling privileges during dispute investigations.
+
+### Listing Creation & Image Handling
+When a verified seller creates a listing via [`CreateProductPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/seller/CreateProductPage.tsx):
 - **Category & Subcategory:** Associated with academic department (e.g., Textbooks, Calculators, Lab Tools).
 - **Title & Description:** Detailed description of textbook edition, course requirement, and condition notes.
 - **Condition Grade:** Enum value from `BRAND_NEW` to `ACCEPTABLE`.
 - **Pricing:** Listed Price (`price`) and Original Retail MSRP (`originalMsrp`) in ₹.
 - **Book Details (Optional):** Author, Publisher, Edition, Course Code (e.g., `CHEM201`, `CS109`), ISBN-10, ISBN-13.
-- **Images:** Image URLs with `isPrimary` flag and display ordering.
+- **Dual-Mode Image Upload & Web URL Processing:**
+  - **Local File Upload:** Uploads file to `/api/v1/upload` and receives local storage path `/api/v1/uploads/...`.
+  - **Direct Image URL:** Allows pasting external web image links (Unsplash, Cloudinary, AWS S3 CDN).
+  - **Validation & Safety:** `productValidators.ts` uses `isValidImageUrl()` to validate URLs (ensuring HTTP/HTTPS, local uploads, or Base64 data URIs) and rejects invalid formats with user-friendly error guidance.
+  - **Database Storage:** Stored in `product_images.imageUrl` using MySQL `@db.Text` (supporting up to 65,535 characters), eliminating legacy 191-character truncation errors (`Prisma P2000`).
 - **Fulfillment Modes:** Allowed methods (`CAMPUS_MEETUP,COURIER_SHIPPING`).
 
 ---
@@ -510,9 +537,20 @@ Physical Inspection & Handover
    [ FUNDS RELEASED ] ───> Credited to Seller Cleared Wallet Balance
 ```
 
-### Payment Processing Implementation
-- **Direct Escrow Hold (Simulated / Local Safe-Hold):** When `ESCROW_HOLD` is selected, the backend creates the order and settles the transaction immediately into the escrow ledger.
-- **Razorpay Gateway Integration:** Supports live UPI, Credit/Debit Card, and Net Banking via Razorpay Order Creation (`POST /payments/create-order`) and HMAC-SHA256 signature verification (`POST /payments/verify`).
+### Payment & Escrow Protection Modes
+
+CampusMarket supports two escrow funding workflows designed for university students:
+
+1. **Instant UPI (Scan & Pay with Any UPI App — Primary Mode):**
+   - **Interactive Merchant QR Display:** Renders the verified merchant UPI QR code (`/images/upi_qr.jpg`), merchant title, exact cart subtotal in ₹, and copyable UPI ID (`campusmarket@icici`).
+   - **Universal App Support:** Students open Google Pay, PhonePe, Paytm, BHIM, or CRED to scan the code or transfer directly to the UPI ID.
+   - **Explicit "Proceed" Gate Action:** To prevent accidental submissions without payment, the UI disables final order placement (`isMainButtonDisabled = (paymentMethod === 'UPI' && !upiConfirmed)`). The student must explicitly click **"I've Paid — Proceed"** in the UPI payment card.
+   - **Visual Confirmation State:** Clicking "Proceed" displays a verified confirmation banner with option to "Change / Re-scan" and activates the primary order button.
+   - **Transaction Execution:** On submit, `POST /api/v1/orders` records `paymentMethod: 'UPI'`, locks funds in the platform escrow pool, clears the student's cart, decrements product stock, and redirects to live order tracking.
+
+2. **Online Escrow Gateway (Cards / NetBanking / Razorpay):**
+   - **Gateway Integration:** Generates a secure gateway transaction via `POST /payments/create-order` and captures authorized payments with signature verification (`POST /payments/verify`).
+   - **Simulation & Resilience:** If external gateway credentials are not configured in development mode, the checkout seamlessly completes the order into the escrow pool without blocking development testing.
 
 ---
 
@@ -560,12 +598,34 @@ Direct messaging connects buyers and sellers regarding specific product listings
 # 15. Notification Engine & Real-Time Alerts
 
 ### Notification Trigger Events
-Notifications are generated automatically by `notificationService.ts` on critical marketplace events:
-- `ORDER_CREATED`: Notifies seller when a buyer places an order.
+Notifications are generated automatically by `notificationService.ts` and `alertService.ts` on critical marketplace events:
+- `PRICE_DROP`: Alerts students when a seller reduces a listing price below or equal to their user-defined target threshold.
+- `BACK_IN_STOCK`: Alerts students subscribed to availability alerts when an out-of-stock textbook is restocked.
+- `SELLER_VERIFIED`: Informs seller that their storefront verification has been approved by a campus administrator.
+- `SELLER_REJECTED`: Informs seller that their storefront application was declined with admin review notes.
+- `ORDER_CREATED`: Notifies seller when a buyer places an escrow order.
 - `PAYMENT_SUCCESS`: Confirms escrow funding to buyer and seller.
-- `SHIPMENT_UPDATED` / `DELIVERED`: Alerts buyer when package is out for delivery.
+- `SHIPMENT_UPDATED` / `DELIVERED`: Alerts buyer when package is out for delivery or ready at a safe-zone.
 - `MESSAGE_RECEIVED`: Alerts recipient of incoming direct messages.
 - `REVIEW_RECEIVED`: Notifies seller when a buyer submits a 0–5 star review.
+
+### Real-Time WebSocket Delivery
+When an alert or notification is created in MySQL:
+1. `notificationRepository.createNotification()` persists the record.
+2. `socketServer.ts` emits a live `notification:received` event directly to the recipient's private room `user:<userId>`.
+3. The frontend `NotificationBell.tsx` increments its unread badge count in real-time without requiring a page refresh.
+
+### Price Alerts Subsystem & Target Price Tracking
+To assist students in budgeting for semester course materials:
+- **Target Price Configuration:** Students click the "Set Alert" or target price badge on [`ProductDetailPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/ProductDetailPage.tsx) to launch [`PriceAlertModal.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/components/alerts/PriceAlertModal.tsx).
+- **Persistence:** Stored in the `price_alerts` table (`userId`, `productId`, `targetPrice`, `isActive`, `triggeredAt`) with compound uniqueness on `[userId, productId]`.
+- **Automatic Price Drop Detection:** When a seller edits listing price in `productService.updateProduct()`, the backend invokes `alertService.checkAndTriggerPriceAlerts(productId, previousPrice, newPrice)`.
+- **Anti-Spam & Auto-Disarming:** To eliminate alert spam, matching alerts are atomically disarmed (`isActive = false`, `triggeredAt = new Date()`) upon firing. The student can re-arm with a lower threshold anytime.
+- **Price Alerts Dashboard ([`PriceAlertsPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/PriceAlertsPage.tsx)):** Students access `/price-alerts` to view active watches, compare target prices against current listings, and manage alert thresholds.
+
+### Availability & Restock Alerts
+- **One-Click Restock Subscription:** When a product is sold out (`quantity = 0`), students can subscribe via `POST /api/v1/products/:id/availability-alert`.
+- **Restock Trigger:** When a seller updates inventory (`quantity > 0`), `alertService.checkAndTriggerAvailabilityAlerts()` broadcasts `BACK_IN_STOCK` notifications to all subscribed students.
 
 ---
 
@@ -589,44 +649,47 @@ Notifications are generated automatically by `notificationService.ts` on critica
 
 # 18. Database Schema & Data Models
 
-### Summary of 34 Relational Database Models
+### Summary of 37 Relational Database Models
 
 | Table / Model | Purpose | Key Fields & Foreign Keys |
 | :--- | :--- | :--- |
 | `colleges` | University institutions | `id`, `name`, `code` (Unique), `domain` (Unique), `city`, `state` |
 | `safe_zones` | Verified campus meetup spots | `id`, `collegeId` (FK), `name`, `locationName`, `isCameraMonitored` |
-| `users` | User accounts & credentials | `id`, `email` (Unique), `passwordHash`, `role`, `status`, `collegeId` (FK) |
+| `users` | User accounts & credentials | `id`, `email` (Unique), `passwordHash`, `role`, `status`, `avatarUrl` (`@db.Text`), `collegeId` (FK) |
 | `user_addresses` | Saved delivery locations | `id`, `userId` (FK), `recipientName`, `phone`, `streetAddress`, `city` |
 | `user_preferences` | User UI & communication prefs | `id`, `userId` (FK Unique), `theme`, `emailNotifications`, `currency` |
-| `sellers` | Storefront profiles | `id`, `userId` (FK Unique), `sellerType`, `storeName`, `rating`, `status` |
-| `seller_verifications` | Student ID verification files | `id`, `sellerId` (FK), `documentType`, `documentUrl`, `status` |
+| `sellers` | Storefront profiles | `id`, `userId` (FK Unique), `sellerType`, `storeName`, `rating`, `status` (`PENDING`/`VERIFIED`/`REJECTED`/`SUSPENDED`) |
+| `seller_verifications` | Student ID verification files | `id`, `sellerId` (FK), `documentType`, `documentUrl` (`@db.Text`), `status`, `rejectionReason` |
 | `seller_wallets` | Cleared & escrow balances | `id`, `sellerId` (FK Unique), `clearedBalance`, `pendingEscrowBalance` |
 | `payout_withdrawals` | Seller earnings withdrawals | `id`, `walletId` (FK), `amount`, `payoutMethod`, `status` |
 | `categories` | Course material categories | `id`, `name`, `slug` (Unique), `description`, `icon`, `displayOrder` |
 | `subcategories` | Specific sub-disciplines | `id`, `categoryId` (FK), `name`, `slug` (Unique) |
 | `products` | Marketplace listings | `id`, `sellerId` (FK), `collegeId` (FK), `categoryId` (FK), `title`, `price`, `conditionGrade`, `status` |
 | `book_details` | Academic textbook metadata | `id`, `productId` (FK Unique), `isbn13`, `isbn10`, `author`, `courseCode` |
-| `product_images` | Listing photos | `id`, `productId` (FK), `imageUrl`, `isPrimary`, `displayOrder` |
+| `product_images` | Listing photos & web images | `id`, `productId` (FK), `imageUrl` (`@db.Text`), `isPrimary`, `displayOrder` |
+| `price_alerts` | User target price alerts | `id`, `userId` (FK), `productId` (FK), `targetPrice` (`Decimal(10,2)`), `isActive`, `triggeredAt`, Unique `[userId, productId]` |
+| `availability_alerts` | Out-of-stock restock alerts | `id`, `userId` (FK), `productId` (FK), `isActive`, `triggeredAt`, Unique `[userId, productId]` |
 | `wishlists` | User saved items container | `id`, `userId` (FK Unique) |
 | `wishlist_items` | Individual saved items | `id`, `wishlistId` (FK), `productId` (FK), Unique `[wishlistId, productId]` |
 | `carts` | User shopping cart container | `id`, `userId` (FK Unique) |
 | `cart_items` | Cart items & quantities | `id`, `cartId` (FK), `productId` (FK), `quantity`, Unique `[cartId, productId]` |
 | `orders` | Placed order transactions | `id`, `orderNumber` (Unique), `buyerId` (FK), `sellerId` (FK), `status`, `totalAmount` |
 | `order_items` | Immutable purchase snapshots | `id`, `orderId` (FK), `productId` (FK), `snapshotTitle`, `snapshotUnitPrice`, `quantity` |
-| `order_status_history`| Audit timeline of status changes | `id`, `orderId` (FK), `previousStatus`, `newStatus`, `changedByUserId` |
-| `payments` | Gateway & escrow records | `id`, `orderId` (FK), `amount`, `status`, `paymentMethod`, `razorpayOrderId` |
-| `escrow_holds` | Locked funds tracking | `id`, `orderId` (FK), `amount`, `status`, `releasedAt` |
+| `order_status_histories`| Audit timeline of status changes | `id`, `orderId` (FK), `previousStatus`, `newStatus`, `changedByUserId` |
+| `payments` | Gateway & escrow records | `id`, `orderId` (FK), `amount`, `status`, `paymentMethod` (`UPI`/`ESCROW_HOLD`), `razorpayOrderId` |
+| `escrow_ledgers` | Locked funds tracking | `id`, `orderId` (FK), `sellerId` (FK), `amount`, `status` (`HELD`/`RELEASED`/`REFUNDED`), `releasedAt` |
 | `shipments` | Courier & delivery tracking | `id`, `orderItemId` (FK), `shipmentNumber` (Unique), `shippingMethod`, `status` |
 | `shipment_checkpoints`| Tracking waypoints | `id`, `shipmentId` (FK), `status`, `location`, `timestamp` |
 | `product_reviews` | Verified textbook reviews | `id`, `productId` (FK), `orderItemId` (FK Unique), `authorId` (FK), `rating`, `comment` |
 | `seller_reviews` | Seller store ratings | `id`, `sellerId` (FK), `orderId` (FK Unique), `authorId` (FK), `rating`, `comment` |
-| `disputes` | Order conflict resolutions | `id`, `orderId` (FK), `initiatorId` (FK), `reason`, `status`, `resolutionNotes` |
+| `disputes` | Order conflict resolutions | `id`, `orderId` (FK Unique), `initiatorUserId` (FK), `reason`, `explanation` (`@db.Text`), `proofImageUrls` (JSON), `status` (`OPENED`/`UNDER_REVIEW`/`RESOLVED_BUYER_REFUND`/`RESOLVED_SELLER_PAYOUT`/`REJECTED`), `resolutionNotes` |
+| `reports` | Abuse & policy violation reports| `id`, `reporterUserId` (FK), `targetType` (`PRODUCT`/`SELLER`/`USER`/`MESSAGE`/`REVIEW`), `targetId`, `reason`, `description` (`@db.Text`), `status` (`PENDING`/`UNDER_REVIEW`/`DISMISSED`/`RESOLVED`), `assignedAdminId`, `resolutionNotes` |
 | `conversations` | Buyer-seller chat threads | `id`, `productId` (FK), `buyerId` (FK), `sellerId` (FK), Unique `[productId, buyerId, sellerId]` |
-| `messages` | Chat messages | `id`, `conversationId` (FK), `senderId` (FK), `body`, `isRead` |
-| `notifications` | System & user alert cards | `id`, `userId` (FK), `type`, `title`, `body`, `actionUrl`, `isRead` |
-| `notification_preferences` | Notification category toggles | `id`, `userId` (FK Unique), `orderUpdates`, `messageAlerts` |
-| `reports` | Policy violation reports | `id`, `reporterId` (FK), `targetType`, `targetId`, `reason`, `isResolved` |
-| `audit_logs` | Administrative security audit trail | `id`, `userId` (FK), `action`, `entityType`, `entityId`, `ipAddress` |
+| `messages` | Chat messages | `id`, `conversationId` (FK), `senderUserId` (FK), `messageText` (`@db.Text`), `isPiiMasked`, `readAt` |
+| `message_reports` | Chat moderation reports | `id`, `messageId` (FK), `reporterUserId` (FK), `reason` (`@db.Text`) |
+| `notifications` | System & user alert cards | `id`, `userId` (FK), `type` (`PRICE_DROP`, `BACK_IN_STOCK`, `SELLER_VERIFIED`, etc.), `title`, `body`, `actionUrl`, `readAt` |
+| `notification_preferences` | Notification category toggles | `id`, `userId` (FK Unique), `inAppEnabled`, `emailEnabled`, `orderUpdates`, `messages`, `reviews` |
+| `audit_logs` | Administrative security audit trail | `id`, `actorUserId` (FK), `action`, `resource`, `resourceId`, `payload` (JSON), `ipAddress` |
 
 ---
 
@@ -641,11 +704,23 @@ Notifications are generated automatically by `notificationService.ts` on critica
 ### Products (`/api/v1/products`)
 - `GET /api/v1/products` — Discover active listings with search, price, condition, college filters.
 - `GET /api/v1/products/:id` — Retrieve comprehensive listing specifications and book metadata.
-- `POST /api/v1/products` *(Auth: Seller)* — Create a new listing.
-- `PATCH /api/v1/products/:id` *(Auth: Seller)* — Update listing price, quantity, description.
-- `DELETE /api/v1/products/:id` *(Auth: Seller)* — Soft-delete / archive a listing.
-- `POST /api/v1/products/:id/publish` *(Auth: Seller)* — Publish a draft listing.
-- `POST /api/v1/products/:id/pause` *(Auth: Seller)* — Pause an active listing.
+- `POST /api/v1/products` *(Auth: Verified Seller)* — Create a new listing (supports web image URLs and uploads).
+- `PATCH /api/v1/products/:id` *(Auth: Verified Seller)* — Update listing price, quantity, description, images.
+- `DELETE /api/v1/products/:id` *(Auth: Verified Seller)* — Soft-delete / archive a listing.
+- `POST /api/v1/products/:id/publish` *(Auth: Verified Seller)* — Publish a draft listing.
+- `POST /api/v1/products/:id/pause` *(Auth: Verified Seller)* — Pause an active listing.
+- `POST /api/v1/products/:id/images` *(Auth: Verified Seller)* — Add an extra photo or web image URL.
+- `PATCH /api/v1/products/:id/images/:imageId` *(Auth: Verified Seller)* — Set an image as primary thumbnail.
+- `DELETE /api/v1/products/:id/images/:imageId` *(Auth: Verified Seller)* — Delete a listing image.
+
+### Price & Availability Alerts (`/api/v1/*`)
+- `POST /api/v1/products/:productId/price-alert` *(Auth: Required)* — Set or update target price alert.
+- `GET /api/v1/products/:productId/price-alert` *(Auth: Required)* — Get user's active price alert for a product.
+- `DELETE /api/v1/products/:productId/price-alert` *(Auth: Required)* — Remove price alert for a product.
+- `POST /api/v1/products/:productId/availability-alert` *(Auth: Required)* — Subscribe to back-in-stock restock alert.
+- `GET /api/v1/products/:productId/availability-alert` *(Auth: Required)* — Check availability alert status.
+- `DELETE /api/v1/products/:productId/availability-alert` *(Auth: Required)* — Unsubscribe from availability alert.
+- `GET /api/v1/price-alerts` *(Auth: Required)* — Fetch all active price watches for current user.
 
 ### Shopping Cart (`/api/v1/cart`)
 - `GET /api/v1/cart` *(Auth: Required)* — Fetch user's cart, line items, and subtotal.
@@ -656,10 +731,15 @@ Notifications are generated automatically by `notificationService.ts` on critica
 
 ### Orders & Checkout (`/api/v1/orders` & `/api/v1/checkout`)
 - `GET /api/v1/checkout` *(Auth: Required)* — Fetch checkout preview and price breakdown.
-- `POST /api/v1/orders` *(Auth: Required)* — Place order, record escrow hold, clear cart.
+- `POST /api/v1/orders` *(Auth: Required)* — Place order with Instant UPI or Escrow Hold, clear cart.
 - `GET /api/v1/orders` *(Auth: Required)* — Fetch buyer's order history.
 - `GET /api/v1/orders/:orderNumber` *(Auth: Required)* — Fetch detailed order receipt and snapshots.
 - `POST /api/v1/orders/:orderNumber/cancel` *(Auth: Required)* — Cancel an order before shipment.
+
+### User Dispute & Abuse Reporting (`/api/v1/*`)
+- `POST /api/v1/orders/:orderId/dispute` *(Auth: Required)* — Submit an escrow dispute for an order.
+- `POST /api/v1/disputes` *(Auth: Required)* — Direct dispute creation endpoint.
+- `POST /api/v1/reports` *(Auth: Required)* — Submit a policy violation report on a product, seller, user, or message.
 
 ### Payments (`/api/v1/payments`)
 - `POST /api/v1/payments/create-order` *(Auth: Required)* — Generate Razorpay payment order.
@@ -678,15 +758,19 @@ Notifications are generated automatically by `notificationService.ts` on critica
 - `GET /api/v1/conversations/:id` *(Auth: Required)* — Load message history.
 - `POST /api/v1/conversations/:id/messages` *(Auth: Required)* — Send a new message.
 
-### Administration (`/api/v1/admin/*`)
-- `GET /api/v1/admin/dashboard` *(Auth: Moderator/Admin)* — Platform metrics and volume.
+### Administration & Moderation (`/api/v1/admin/*`)
+- `GET /api/v1/admin/dashboard` *(Auth: Moderator/Admin)* — Platform metrics, sales volume, user counts.
 - `GET /api/v1/admin/users` *(Auth: Moderator/Admin)* — User list with role/status filters.
 - `PATCH /api/v1/admin/users/:id/status` *(Auth: Admin)* — Update user status (Active/Suspended/Banned).
-- `POST /api/v1/admin/sellers/:id/verify` *(Auth: Admin)* — Approve seller verification.
-- `PATCH /api/v1/admin/products/:id/status` *(Auth: Moderator/Admin)* — Moderate product status.
-- `GET /api/v1/admin/disputes` *(Auth: Moderator/Admin)* — Fetch open escrow disputes.
-- `PATCH /api/v1/admin/disputes/:id/resolve` *(Auth: Admin)* — Resolve dispute (refund/payout).
-- `GET /api/v1/admin/audit-logs` *(Auth: Admin)* — Security and audit log viewer.
+- `GET /api/v1/admin/sellers` *(Auth: Moderator/Admin)* — Storefront verification queue with status filter.
+- `POST /api/v1/admin/sellers/:id/verify` *(Auth: Admin)* — Approve (`VERIFIED`), reject, or suspend seller storefront.
+- `GET /api/v1/admin/products` *(Auth: Moderator/Admin)* — Listing moderation queue.
+- `PATCH /api/v1/admin/products/:id/status` *(Auth: Moderator/Admin)* — Moderate product status (Active/Suspended).
+- `GET /api/v1/admin/reports` *(Auth: Moderator/Admin)* — Fetch reported content and user abuse queue.
+- `PATCH /api/v1/admin/reports/:id/resolve` *(Auth: Moderator/Admin)* — Moderate and resolve a content report.
+- `GET /api/v1/admin/disputes` *(Auth: Moderator/Admin)* — Fetch open escrow dispute claims.
+- `PATCH /api/v1/admin/disputes/:id/resolve` *(Auth: Admin)* — Resolve dispute (arbitrate buyer refund / seller payout).
+- `GET /api/v1/admin/audit-logs` *(Auth: Admin)* — Security and administrative audit trail viewer.
 
 ---
 
@@ -702,19 +786,20 @@ Notifications are generated automatically by `notificationService.ts` on critica
            ↓
 3. `cookieParser()` — Parses Cookie headers for `refreshToken`
            ↓
-4. `express.json({ limit: '2mb' })` — Parses JSON payload
+4. `express.json({ limit: '10mb' })` — Parses JSON payload (supports image data URIs)
            ↓
 5. `requestLogger` — Logs method, path, status, and execution duration
            ↓
 6. `apiLimiter` — Enforces IP rate limiting threshold
            ↓
-7. Route Handlers:
-   - `requireAuth` (Validates JWT Bearer token & attaches `req.user`)
-   - `requireSeller` / `requireAdmin` (Role authorization guards)
-   - Zod Validator (Parses `req.body`, `req.query`, `req.params`)
+7. Route Authorization & Validation Guards:
+   - `requireAuth` (Validates JWT Bearer token & loads `req.user`)
+   - `requireVerifiedSeller` (Enforces that seller storefront has status `VERIFIED`)
+   - `requireAdmin` / `requireModerator` (Enforces administrative privileges)
+   - Zod Validators (Parses & sanitizes `req.body`, `req.query`, `req.params`)
    - Controller -> Service -> Repository -> Prisma ORM -> MySQL
            ↓
-8. `errorHandler` — Centralized error handler catching Zod, Prisma, and HTTP errors
+8. `errorHandler` — Centralized error handler catching Zod, Prisma (`P2000`, `P2002`, `P2003`), and HTTP errors
            ↓
 [ Outgoing JSON Response ]
 ```
@@ -727,12 +812,15 @@ Notifications are generated automatically by `notificationService.ts` on critica
 2. **Stateless JWT Authentication:**
    - Short-lived Access Tokens (15 minutes) signed with `JWT_SECRET`.
    - Long-lived Refresh Tokens (7 days) stored in HttpOnly, SameSite cookies.
-3. **Role-Based Access Control (RBAC):** Middleware guards (`requireAuth`, `requireSeller`, `requireAdmin`, `requireModerator`) enforce least-privilege access.
-4. **SQL Injection Prevention:** 100% parameterization via Prisma ORM. No raw string interpolation is used.
-5. **Cross-Site Scripting (XSS) Mitigation:** React's built-in JSX escaping prevents DOM injection; Helmet CSP restricts script sources.
-6. **Input Sanitization & Validation:** Strict Zod schemas reject unexpected fields, validate string lengths, and coerce numbers safely.
-7. **Rate Limiting:** Tiered rate limiters protect authentication endpoints from brute-force dictionary attacks.
-8. **Ownership Verification:** Services verify that users can only modify their own products, cart items, addresses, and orders (`verifyResourceOwnership`).
+3. **Role-Based Access Control (RBAC):** Middleware guards (`requireAuth`, `requireSeller`, `requireVerifiedSeller`, `requireAdmin`, `requireModerator`) enforce least-privilege access.
+4. **Mandatory Seller Verification Gate:** Prevents unapproved or unverified sellers from creating listings or publishing content on the marketplace.
+5. **Community Reporting & Content Moderation:** User-facing reporting tools allow students to flag policy violations, suspicious listings, or spam directly to campus administrators.
+6. **Escrow Dispute Arbitration:** Two-party dispute workflow with proof image attachment and admin refund/payout arbitration.
+7. **SQL Injection Prevention:** 100% parameterization via Prisma ORM. No raw string interpolation is used.
+8. **Cross-Site Scripting (XSS) Mitigation:** React's built-in JSX escaping prevents DOM injection; Helmet CSP restricts script sources.
+9. **Input Sanitization & Validation:** Strict Zod schemas reject unexpected fields, validate string lengths, and coerce numbers safely.
+10. **Rate Limiting:** Tiered rate limiters protect authentication endpoints from brute-force dictionary attacks.
+11. **Ownership Verification:** Services verify that users can only modify their own products, cart items, addresses, and orders (`verifyResourceOwnership`).
 
 ---
 
@@ -745,54 +833,73 @@ Every error response returned by the backend conforms to the shared API envelope
   "success": false,
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "Invalid request input data.",
+    "message": "Please check the information you entered.",
     "details": [
       {
-        "field": "price",
-        "message": "Price must be greater than 0"
+        "field": "images.0.imageUrl",
+        "message": "Please provide a valid web image URL (starting with http:// or https://) or upload a photo."
       }
     ]
   },
   "meta": {
-    "timestamp": "2026-08-17T11:24:53.121Z"
+    "timestamp": "2026-08-21T21:45:00.121Z"
   }
 }
 ```
 
 ### Centralized Exception Mapping
-- **Zod Validation Errors:** Mapped to HTTP `400 Bad Request` with code `VALIDATION_ERROR`.
-- **Prisma Known Errors (`P2002`, `P2025`):** Mapped to `409 Conflict` (duplicate unique field) or `404 Not Found`.
+- **Zod Validation Errors:** Mapped to HTTP `400 Bad Request` with code `VALIDATION_ERROR`. The frontend client automatically extracts `details[0].message` so the user sees specific field feedback.
+- **Prisma Database Known Errors:**
+  - `P2000`: Mapped to `DATABASE_ERROR` with message *"One of the provided values (such as an image URL or description) is too long for the database."*
+  - `P2002`: Mapped to `DATABASE_ERROR` with message *"A record with this information already exists."* (e.g. duplicate email or unique compound index).
+  - `P2003`: Mapped to `DATABASE_ERROR` with message *"Referenced record was not found or is invalid."*
+  - `P2025`: Mapped to `DATABASE_ERROR` with message *"The requested item could not be found."*
 - **JWT Errors (`TokenExpiredError`, `JsonWebTokenError`):** Mapped to `401 Unauthorized` with code `TOKEN_EXPIRED`.
-- **Authorization Failures:** Mapped to `403 Forbidden` with code `FORBIDDEN`.
+- **Authorization Failures:** Mapped to `403 Forbidden` with code `FORBIDDEN` or `SELLER_NOT_VERIFIED`.
 
 ---
 
 # 23. Complete End-to-End User Journeys
 
-### 1. The Buyer Journey
+### 1. The Buyer Journey & Instant UPI Escrow
 1. **Discovery:** Student visits `CampusMarket`, sees featured chemistry and calculus textbooks on `HomePage.tsx`.
 2. **Filtering:** Navigates to `/products`, searches for `"Organic Chemistry"`, filters by `GOOD` condition and max price `₹500`.
-3. **Product Inspection:** Clicks product to view [`ProductDetailPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/ProductDetailPage.tsx). Inspects ISBN-13, course code (`CHEM201`), condition notes, and seller rating (4.9★).
+3. **Product Inspection & Price Watch:** Clicks product to view [`ProductDetailPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/ProductDetailPage.tsx). Inspects ISBN-13, condition notes, and seller rating (4.9★). Optionally clicks "Set Alert" to configure a target price drop alert (e.g. ₹400) in `PriceAlertModal.tsx`.
 4. **Add to Cart:** Clicks "Add to Bag". Cart count badge in floating navbar increments to 1.
 5. **Checkout:** Opens `/cart`, reviews line total (₹450), and clicks "Proceed to Checkout".
-6. **Escrow Lock:** On `/checkout`, selects campus safe-zone (Library Gate SafeZone), selects Escrow Protection, and clicks "Confirm Order & Lock Escrow".
+6. **Instant UPI Escrow Funding:** On [`CheckoutPage.tsx`](file:///c:/Users/Arnav/OneDrive/Desktop/holy_proj_v2/frontend/src/pages/CheckoutPage.tsx):
+   - Selects campus safe-zone (Library Gate SafeZone).
+   - Selects **Instant UPI** payment mode.
+   - Scans merchant QR code (`/images/upi_qr.jpg`) with Google Pay or PhonePe.
+   - Clicks **"I've Paid — Proceed"** to confirm payment transfer.
+   - Clicks **"Complete Escrow Order"** to place order and lock funds into escrow.
 7. **Handover & Delivery:** Buyer and seller meet at Library Gate. Buyer inspects the book.
-8. **Review:** Buyer navigates to `/orders`, clicks "Write Review", gives 5 stars with comment `"Pristine condition, saved ₹1,000 compared to new bookstore price!"`.
+8. **Dispute / Review:**
+   - If satisfied: Buyer navigates to `/orders`, clicks "Write Review", gives 5 stars with feedback.
+   - If issue occurs: Buyer clicks "Report Issue / Dispute" (`DisputeModal.tsx`) to submit an arbitration request to campus admins.
 
-### 2. The Seller Journey
+### 2. The Seller Journey & Storefront Approval
 1. **Onboarding:** Student signs up, clicks "Seller Portal" -> "Become a Seller", registers store name `"Alice's Course Gear"`.
-2. **Listing Creation:** Navigates to `/seller/products/new`, inputs textbook title `"Organic Chemistry"`, author `"Paula Bruice"`, ISBN, selects `GOOD` condition, sets price to `₹450`, and uploads image.
-3. **Publishing:** Listing goes live instantly on the campus marketplace.
-4. **Order Notification:** Receives in-app notification `"New order #ORD-2026-677788 placed by student buyer"`.
-5. **Handover:** Meets buyer at campus safe-zone.
-6. **Earnings Settlement:** Escrow releases payment directly into seller's cleared wallet balance (₹450).
+2. **Pending Approval State:** Storefront is created with `status: PENDING`. The seller cannot list products until approved by an administrator.
+3. **Admin Verification:** Campus administrator reviews Alice's student profile in `/admin/sellers` and approves the storefront (`status: VERIFIED`).
+4. **Listing Creation:** Alice navigates to `/seller/products/new`, inputs textbook title `"Organic Chemistry"`, author, ISBN, condition grade, price (`₹450`), and uploads a photo or pastes a direct web image URL (Unsplash/Cloudinary).
+5. **Publishing:** The listing goes live on the marketplace.
+6. **Order & Payout:** Alice receives an in-app notification when a student places an order, meets at the campus safe-zone, and receives cleared funds in her wallet upon successful handover.
 
-### 3. The Administrator Journey
+### 3. The Dispute Submission & Abuse Reporting Journey
+1. **Community Reporting:** A student spots a suspicious listing or abusive seller profile on `ProductDetailPage.tsx` or `PublicSellerPage.tsx` and clicks "Report".
+2. **Report Dialog:** Opens `ReportModal.tsx`, selects reason (Spam, Counterfeit, Harassment, Inappropriate), provides description, and submits (`POST /api/v1/reports`).
+3. **Order Dispute:** A buyer encounters a damaged item during safe-zone inspection and opens `DisputeModal.tsx` on `OrderDetailPage.tsx` (`POST /api/v1/orders/:orderNumber/dispute`).
+4. **Admin Moderation & Arbitration:**
+   - Administrators inspect reported content in **Admin → Content Reports** (`/admin/reports`) and take moderation action.
+   - Administrators review escrow disputes in **Admin → Disputes** (`/admin/disputes`) and arbitrate a buyer refund or seller release.
+
+### 4. The Administrator Journey
 1. **Authentication:** Administrator logs in with admin credentials.
 2. **Dashboard Overview:** Opens `/admin` to view total platform volume, active users, and active listings.
-3. **Seller Verification:** Navigates to `/admin/sellers`, inspects uploaded student ID cards, and clicks "Approve Verification".
-4. **Content Moderation:** Navigates to `/admin/reports` to inspect reported listings or spam, and resolves reports.
-5. **Audit Logs:** Navigates to `/admin/audit-logs` to review timestamped administrative activity records.
+3. **Storefront Verification Queue:** Navigates to `/admin/sellers` to inspect pending seller applications and approve (`VERIFIED`) or reject (`REJECTED`) storefronts.
+4. **Content & Dispute Moderation:** Reviews user-submitted reports (`/admin/reports`) and arbitrates escrow disputes (`/admin/disputes`).
+5. **Security Audit Logs:** Navigates to `/admin/audit-logs` to review timestamped administrative activity records.
 
 ---
 
@@ -804,9 +911,9 @@ Every error response returned by the backend conforms to the shared API envelope
 > Every semester, students spend thousands of rupees on coursebooks, graphing calculators, and lab kits, which end up sitting unused a few months later. Traditional open platforms like OLX or Facebook Marketplace are plagued by scams, unverified strangers, and lack of buyer protection.
 > 
 > CampusMarket solves this with three pillars:
-> 1. **Verified Campus Ecosystem:** Accounts are mapped to real universities and student sellers with ratings.
-> 2. **100% Escrow Guarantee:** Payments are held safely in escrow until the student physically inspects the book at a campus Safe-Zone.
-> 3. **Curated Academic Discovery:** Students can search specifically by ISBN, course code, and condition grade.
+> 1. **Verified Campus Ecosystem:** Accounts are mapped to real universities, with mandatory admin approval for all student sellers.
+> 2. **100% Escrow Guarantee & Instant UPI QR:** Payments are held safely in escrow with seamless UPI scan-and-pay until the student physically inspects the book at a campus Safe-Zone.
+> 3. **Curated Academic Discovery & Price Alerts:** Students can search specifically by ISBN, course code, condition grade, and receive real-time alerts on price drops and restocks.
 > 
 > Our tech stack features React 18, TypeScript, and Tailwind on the frontend, with an Express.js, Prisma ORM, and MySQL 8.0 backend, backed by real-time WebSockets and JWT security. The platform is fully built and tested."
 
@@ -854,7 +961,7 @@ Every error response returned by the backend conforms to the shared API envelope
 **Answer:** If an order is cancelled before delivery, the order status changes to `CANCELLED`, the payment status is marked `REFUNDED_TO_BUYER`, and the product's available quantity is restored in inventory.
 
 #### Q14: How does role-based authorization work?
-**Answer:** Middleware functions `requireSeller` and `requireAdmin` inspect `req.user.role` after JWT verification. If the user does not possess the required role, the middleware aborts with HTTP `403 Forbidden`.
+**Answer:** Middleware functions `requireSeller`, `requireVerifiedSeller`, and `requireAdmin` inspect `req.user.role` and `seller.status` after JWT verification. If requirements are not met, the middleware aborts with HTTP `403 Forbidden`.
 
 #### Q15: Why is TypeScript used across both frontend and backend?
 **Answer:** TypeScript eliminates an entire class of runtime type mismatch bugs by enforcing strict static types for props, API request bodies, and database models across the entire monorepo.
@@ -900,27 +1007,32 @@ Every error response returned by the backend conforms to the shared API envelope
 
 ### 2. `backend/src/middleware/authMiddleware.ts`
 - **Purpose:** Protects API routes by verifying JWT Bearer tokens and enforcing role permissions.
-- **Important Logic:** `requireAuth` extracts `Authorization: Bearer <token>`, verifies signature with `jwtSecret`, loads user from MySQL, and attaches `req.user`. `requireSeller` ensures the user possesses a verified `Seller` record.
+- **Important Logic:** `requireAuth` extracts `Authorization: Bearer <token>`, verifies signature with `jwtSecret`, loads user from MySQL, and attaches `req.user`. `requireVerifiedSeller` ensures the seller storefront is approved (`status === 'VERIFIED'`).
 - **Communicates With:** `utils/tokenUtils.ts`, `config/prisma.ts`.
 
-### 3. `backend/src/repositories/orderRepository.ts`
+### 3. `backend/src/services/alertService.ts`
+- **Purpose:** Manages user price drop watches, availability alerts, and notification dispatch.
+- **Important Logic:** `checkAndTriggerPriceAlerts()` evaluates product price drops against user thresholds and disarms triggered alerts. `checkAndTriggerAvailabilityAlerts()` broadcasts notifications when out-of-stock items are replenished.
+- **Communicates With:** `repositories/priceAlertRepository.ts`, `services/notificationService.ts`.
+
+### 4. `backend/src/repositories/orderRepository.ts`
 - **Purpose:** Performs transactional database operations for order placement and status transitions.
 - **Important Logic:** `createOrderTransaction()` executes inside a Prisma interactive transaction (`tx`): snapshots item prices, creates the `Order`, creates `OrderItem` snapshots, creates `OrderStatusHistory`, clears the user's `CartItem` records, records the `Payment` ledger entry, and increments the seller's `clearedBalance`.
 - **Communicates With:** `config/prisma.ts`, `services/orderService.ts`.
 
-### 4. `backend/src/repositories/productRepository.ts`
+### 5. `backend/src/repositories/productRepository.ts`
 - **Purpose:** Executes product listing creation, inventory updates, and marketplace discovery queries.
 - **Important Logic:** `findPublishedProducts()` dynamic query builder: handles keyword search across 6 fields, price bounding, condition grade filtering, and multi-campus ID / code matching (`where.OR = [{ collegeId }, { college: { code: collegeId } }]`).
 - **Communicates With:** `config/prisma.ts`, `services/productService.ts`.
 
-### 5. `frontend/src/stores/authStore.ts`
+### 6. `frontend/src/stores/authStore.ts`
 - **Purpose:** Client-side authentication state store using Zustand.
 - **Important Logic:** Manages `user`, `token`, `isAuthenticated`, `login()`, `register()`, `logout()`, and `fetchMe()`. Synchronizes tokens with browser `localStorage`.
 - **Communicates With:** `lib/api/client.ts`, `routes/guards.tsx`, `layouts/PublicLayout.tsx`.
 
-### 6. `frontend/src/pages/CheckoutPage.tsx`
-- **Purpose:** Handles the student checkout flow, delivery address setup, and escrow payment funding.
-- **Important Logic:** Calls `POST /api/v1/users/me/addresses` to save delivery safe-zone, calls `POST /api/v1/orders` to execute escrow transaction, and redirects directly to live order tracking.
+### 7. `frontend/src/pages/CheckoutPage.tsx`
+- **Purpose:** Handles student delivery address setup, Instant UPI QR payment display, Proceed gate action, and escrow order completion.
+- **Important Logic:** Enforces that the student confirms payment via **"I've Paid — Proceed"** before placing the order with `POST /api/v1/orders`.
 - **Communicates With:** `lib/api/client.ts`, `lib/queryClient.ts`, `CartPage.tsx`.
 
 ---
@@ -930,13 +1042,16 @@ Every error response returned by the backend conforms to the shared API envelope
 ### Fully Implemented & Verified
 - ✅ **Authentication System:** Registration, login, JWT token issuance, bcrypt hashing, role guards.
 - ✅ **Marketplace Discovery:** Keyword search, category filtering, condition grade filters, price slider, sorting, pagination.
-- ✅ **Product Management:** Listing creation, book details (ISBN/Author/Course), photo uploads, draft/publish/pause/delete.
+- ✅ **Price Alerts & Availability Watches:** User target price setting, out-of-stock subscriptions, real-time WebSocket notifications (`PRICE_DROP`, `BACK_IN_STOCK`), alerts dashboard (`/price-alerts`).
+- ✅ **Mandatory Admin Seller Approval:** Storefront registration defaulting to `PENDING`, admin review interface (`/admin/sellers`), strict `requireVerifiedSeller` route enforcement.
+- ✅ **Instant UPI QR Escrow Checkout:** Merchant UPI QR code rendering, copyable UPI ID, "Proceed" payment confirmation gate, and atomic order creation.
+- ✅ **Product Management & Image URL Support:** Listing creation, book details (ISBN/Author/Course), photo uploads and long web image URL handling (`@db.Text`), draft/publish/pause/delete.
+- ✅ **Community Reporting & Dispute Resolution:** User-facing abuse reporting modal, order dispute modal, admin moderation queue (`/admin/reports`), and admin dispute arbitration (`/admin/disputes`).
 - ✅ **Shopping Cart:** Persistent database cart, add/update/remove, subtotal calculation, checkout lock.
 - ✅ **Wishlist:** Saved items list, unique constraints, move-to-cart action.
-- ✅ **Instant Escrow Checkout:** Immediate order creation, payment ledger recording, seller wallet credit, cart clearing.
 - ✅ **Ratings & Reviews:** Verified purchase review gating, 1-5 star ratings, arithmetic mean aggregation for sellers/products.
 - ✅ **Real-Time WebSockets:** Socket.IO server, user-specific rooms, direct chat messaging, live notifications.
-- ✅ **Administration Suite:** Admin dashboard analytics, user moderation (suspend/ban), seller verification, dispute resolution, audit logs.
+- ✅ **Administration Suite:** Admin dashboard analytics, user moderation (suspend/ban), storefront verification, report queue, dispute resolution, audit logs.
 - ✅ **Multi-Campus Architecture:** College models (`PCET`, `MIT`), campus filtering by UUID or code, safe-zone models.
 
 ### Present but Simulated in Dev Mode

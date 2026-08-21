@@ -10,6 +10,42 @@ export const bookDetailsSchema = z.object({
   courseCode: z.string().trim().max(30).optional().nullable(),
 });
 
+export function isValidImageUrl(val: string): boolean {
+  if (!val || typeof val !== 'string') return false;
+  const trimmed = val.trim();
+  if (!trimmed) return false;
+
+  // Local/relative uploaded paths or assets
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return /^\/(api\/v1\/uploads|uploads|images|static)\/[^\s]+$/i.test(trimmed);
+  }
+
+  // Base64 Data URLs
+  if (trimmed.startsWith('data:image/')) {
+    return /^data:image\/(png|jpeg|jpg|webp|gif|svg\+xml);base64,[A-Za-z0-9+/=]+$/i.test(trimmed);
+  }
+
+  // Web URLs (HTTP / HTTPS)
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export const productImageItemSchema = z.object({
+  imageUrl: z.string()
+    .trim()
+    .min(1, 'Image URL is required')
+    .refine(
+      (val) => isValidImageUrl(val),
+      { message: 'Please provide a valid web image URL (starting with http:// or https://) or upload a photo.' }
+    ),
+  isPrimary: z.boolean().optional().default(false),
+  displayOrder: z.number().int().optional().default(0),
+});
+
 export const createProductSchema = z.object({
   categoryId: z.string().min(1, 'Category is required'),
   subcategoryId: z.string().optional().nullable(),
@@ -24,11 +60,7 @@ export const createProductSchema = z.object({
   targetBranch: z.string().trim().max(100, 'Target branch cannot exceed 100 characters').optional().nullable(),
   targetSemester: z.coerce.number().int().min(1, 'Target semester must be between 1 and 12').max(12, 'Target semester must be between 1 and 12').optional().nullable(),
   bookDetails: bookDetailsSchema.optional().nullable(),
-  images: z.array(z.object({
-    imageUrl: z.string().trim().min(1, 'Image URL is required'),
-    isPrimary: z.boolean().optional().default(false),
-    displayOrder: z.number().int().optional().default(0),
-  })).min(1, 'At least one clear photo of the actual product is required'),
+  images: z.array(productImageItemSchema).min(1, 'At least one clear photo of the actual product is required'),
 });
 
 export const updateProductSchema = createProductSchema.partial().refine(

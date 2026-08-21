@@ -409,7 +409,16 @@ export class ProductRepository {
         });
       }
 
-      return updated;
+      return tx.product.findUniqueOrThrow({
+        where: { id: productId },
+        include: {
+          images: { orderBy: { displayOrder: 'asc' } },
+          bookDetails: true,
+          category: true,
+          subcategory: true,
+          seller: true,
+        },
+      });
     });
   }
 

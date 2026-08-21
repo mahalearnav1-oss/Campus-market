@@ -221,7 +221,7 @@ model User {
   passwordHash      String
   firstName         String
   lastName          String
-  avatarUrl         String?
+  avatarUrl         String?    @db.Text
   bio               String?    @db.Text
   phone             String?
   role              UserRole   @default(STUDENT_BUYER)
@@ -329,7 +329,7 @@ model SellerVerification {
   id              String       @id @default(uuid())
   sellerId        String
   documentType    String
-  documentUrl     String
+  documentUrl     String       @db.Text
   status          SellerStatus @default(PENDING)
   rejectionReason String?      @db.Text
   verifiedAt      DateTime?
@@ -476,7 +476,7 @@ model BookDetails {
 model ProductImage {
   id           String   @id @default(uuid())
   productId    String
-  imageUrl     String
+  imageUrl     String   @db.Text
   displayOrder Int      @default(0)
   isPrimary    Boolean  @default(false)
   createdAt    DateTime @default(now())
