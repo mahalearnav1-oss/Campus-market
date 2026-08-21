@@ -63,6 +63,7 @@ This single command automatically:
 - Generates the Prisma Client locally
 - Synchronizes all tables, relationships, and indexes defined in `backend/prisma/schema.prisma` to your MySQL database
 - Prepopulates essential reference data (campus colleges and courseware categories)
+- Initializes the default development administrator account (`admin@harvard.edu` / `AdminSecure2026!`)
 
 *You do NOT need to install Prisma globally or manually run migration commands.*
 

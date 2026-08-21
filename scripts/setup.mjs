@@ -145,15 +145,15 @@ if (!pushResult.success) {
 
 console.log('✓ Database schema synchronized (all tables ready in MySQL)');
 
-// ── 4. Verify & Initialize Default Reference Data ──────────────────────────
-console.log('\nVerifying reference data (colleges & categories)...');
+// ── 4. Verify & Initialize Default Reference Data & Admin ─────────────────
+console.log('\nInitializing reference data & development admin account...');
 
 const seedRefResult = runCmd('npx tsx prisma/seedReference.ts');
 
 if (seedRefResult.success) {
-  console.log('✓ Default reference data ready');
+  console.log('✓ Default reference data & development admin account ready');
 } else {
-  console.log('! Note: Reference data verified or already initialized.');
+  console.log('! Note: Reference data and admin verified or already initialized.');
 }
 
 // ── 5. Setup Complete Banner ───────────────────────────────────────────────
@@ -163,7 +163,11 @@ console.log('====================================================');
 console.log('\nYou can now start the application with:');
 console.log('  npm run dev');
 console.log('\nEndpoints:');
-console.log('  Frontend UI:  http://localhost:5173');
-console.log('  Backend API:  http://localhost:5000/api/v1');
-console.log('  Health Check: http://localhost:5000/api/v1/health');
+console.log('  Frontend UI:     http://localhost:5173');
+console.log('  Admin Dashboard: http://localhost:5173/admin');
+console.log('  Backend API:     http://localhost:5000/api/v1');
+console.log('  Health Check:    http://localhost:5000/api/v1/health');
+console.log('\nDefault Development Credentials:');
+console.log(`  Admin Email:     ${envVars.ADMIN_EMAIL || 'admin@harvard.edu'}`);
+console.log(`  Admin Password:  ${envVars.ADMIN_PASSWORD ? '[configured in .env]' : 'AdminSecure2026!'}`);
 console.log('====================================================\n');
